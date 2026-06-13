@@ -21,7 +21,7 @@ Zammad add-on package that extends WhatsApp Business API support with **outbound
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.13.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.14.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -32,7 +32,7 @@ zammad restart
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.13.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.14.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -94,6 +94,8 @@ Restart the application afterwards.
 | Multiple WhatsApp accounts | Upgrade to 1.0.11+ — account selector on ticket create when more than one channel exists |
 | Sync fails with `undefined method 'data' for PaginationRecords` | Upgrade to 1.0.12+ — compatible with whatsapp_sdk 1.1.0 (`records` + pagination) |
 | Sync fails with `wrong number of arguments (given 2, expected 1)` | Upgrade to 1.0.13+ — fixes `__()` interpolation in sync success message |
+| Title/Text fields shown on WhatsApp template ticket create | Upgrade to 1.0.14+ — hides title/body, shows template preview and variable fields only |
+| View synced templates in WhatsApp admin | Upgrade to 1.0.14+ — **View Templates** button per account |
 
 ## API
 

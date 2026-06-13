@@ -26,12 +26,22 @@ const hideBodyField = (formNode: FormKitNode, hidden = true) => {
   body?.emit('prop:hidden', hidden)
 }
 
+const hideTitleField = (formNode: FormKitNode, hidden = true) => {
+  const title = formNode.find('title', 'name')
+  title?.emit('prop:hidden', hidden)
+
+  if (hidden) {
+    title?.emit('prop:validation', 'optional')
+  }
+}
+
 const updateTicketCreateComposer = (formNode: FormKitNode) => {
   const articleSenderType = formNode.find('articleSenderType', 'name')?.value as string | undefined
   const groupId = formNode.find('group_id', 'name')?.value as number | string | undefined
 
   if (articleSenderType !== WHATSAPP_TEMPLATE_CREATE_TYPE) {
     hideBodyField(formNode, false)
+    hideTitleField(formNode, false)
     unmountWhatsappTemplateComposer(formNode.props.id as string)
     setActiveWhatsappTemplateForm(undefined)
     return
@@ -41,6 +51,7 @@ const updateTicketCreateComposer = (formNode: FormKitNode) => {
   if (!container || !groupId) return
 
   hideBodyField(formNode, true)
+  hideTitleField(formNode, true)
   setActiveWhatsappTemplateForm({ formId: formNode.props.id as string })
 
   mountWhatsappTemplateComposer(formNode.props.id as string, container, {

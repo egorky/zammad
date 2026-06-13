@@ -42,6 +42,7 @@
           </div>
         </div>
         <div class="action-controls">
+          <div class="btn btn--secondary js-view-whatsapp-templates" data-id="<%= channel.id %>"><%- @T('View Templates') %></div>
           <div class="btn btn--secondary js-sync-whatsapp-templates" data-id="<%= channel.id %>"><%- @T('Sync Templates') %></div>
           <div class="btn btn--danger btn--secondary js-delete"><%- @T('Delete') %></div>
           <% if channel.active is true: %>

@@ -5,6 +5,62 @@ WHATSAPP_TEMPLATE_CREATE_TYPE = 'whatsapp-template-out'
 whatsappTemplateApiPath = ->
   App.Config.get('api_path') || '/api/v1'
 
+whatsappTemplateComponentType = (component) ->
+  type = component?.type || component?['type']
+  "#{type}".toUpperCase()
+
+whatsappTemplateComponentText = (component) ->
+  component?.text || component?['text'] || ''
+
+whatsappReplaceTemplateVariables = (text, values) ->
+  return '' if !text
+
+  result = "#{text}"
+  for value, index in values || []
+    replacement = if _.isEmpty(value) then "{{#{index + 1}}}" else value
+    result = result.replace("{{#{index + 1}}}", replacement)
+  result
+
+buildWhatsappTemplatePreviewText = (template, variableValues = {}) ->
+  return '' if !template
+
+  variableValues ||= {}
+  parts = []
+
+  for component in template.components || []
+    type = whatsappTemplateComponentType(component)
+    text = whatsappTemplateComponentText(component)
+
+    if type is 'HEADER' && text
+      parts.push(whatsappReplaceTemplateVariables(text, variableValues.header))
+    else if type is 'BODY' && text
+      parts.push(whatsappReplaceTemplateVariables(text, variableValues.body))
+    else if type is 'FOOTER' && text
+      parts.push(text)
+
+  parts.join('\n\n') || template.name
+
+formatWhatsappTemplateVariablesSummary = (variables) ->
+  variables ||= {}
+  lines = []
+
+  appendSection = (label, items) ->
+    return if _.isEmpty(items)
+    lines.push("#{label}:")
+    for item in items
+      position = item.position || '-'
+      itemLabel = item.label || "Variable #{position}"
+      lines.push("  • #{itemLabel}")
+
+  appendSection(__('Header variables'), variables.header)
+  appendSection(__('Body variables'), variables.body)
+
+  if !_.isEmpty(variables.buttons)
+    for buttonVariables, buttonIndex in variables.buttons
+      appendSection("#{__('Button variables')} #{buttonIndex + 1}", buttonVariables)
+
+  lines.join('\n')
+
 showWhatsappTemplateSyncResultModal = (data, $container) ->
   templates = data?.templates || []
   count = data?.count ? templates.length
@@ -69,6 +125,65 @@ $(document).off('click.whatsappTemplateSync').on 'click.whatsappTemplateSync', '
         msg:  App.i18n.translateContent(message)
   )
 
+showWhatsappTemplatesAdminModal = (templates, $container) ->
+  if _.isEmpty(templates)
+    message = __('No templates are stored for this WhatsApp account. Click Sync Templates first.')
+  else
+    lines = templates.map (template) ->
+      preview = buildWhatsappTemplatePreviewText(template)
+      variables = formatWhatsappTemplateVariablesSummary(template.variables)
+      status = template.status || '-'
+      details = [preview]
+      details.push(variables) if !_.isEmpty(variables)
+      "• #{template.name} (#{template.language}) — #{status}\n#{details.join('\n')}"
+
+    message = "#{App.i18n.translateInline(__('Synchronized templates:'))}\n\n#{lines.join('\n\n')}"
+
+  container = $container || $('.content').first()
+  container = $('body') if !container.length
+
+  new App.ControllerConfirm(
+    head: __('WhatsApp Templates')
+    message: message
+    buttonSubmit: __('OK')
+    buttonCancel: false
+    buttonClass: 'btn--primary'
+    callback: =>
+    container: container
+  )
+
+$(document).off('click.whatsappTemplateView').on 'click.whatsappTemplateView', '.js-view-whatsapp-templates', (e) ->
+  e.preventDefault()
+  e.stopPropagation()
+
+  $button = $(e.currentTarget)
+  channelId = $button.attr('data-id')
+  return if !channelId
+  return if $button.hasClass('is-loading')
+
+  $button.addClass('is-loading is-active')
+
+  App.Ajax.request(
+    id: 'whatsapp_templates_view'
+    type: 'GET'
+    url: "#{whatsappTemplateApiPath()}/whatsapp_message_templates?channel_id=#{channelId}"
+    success: (data) =>
+      $button.removeClass('is-loading is-active')
+      showWhatsappTemplatesAdminModal(data || [], $button.closest('.content'))
+    error: (xhr) =>
+      $button.removeClass('is-loading is-active')
+      response = {}
+      try
+        response = JSON.parse(xhr.responseText)
+      catch error
+        response = {}
+
+      message = response.error_human || response.error || __('Unable to load WhatsApp templates.')
+      App.Event.trigger 'notify',
+        type: 'error'
+        msg:  App.i18n.translateContent(message)
+  )
+
 # Admin: ChannelWhatsapp load keeps default render; sync uses global document handler above.
 if typeof ChannelWhatsapp isnt 'undefined'
   ChannelWhatsapp.prototype.load = =>
@@ -107,6 +222,25 @@ if App.TicketCreate?
   App.TicketCreate.prototype.render = (template = {}) ->
     _ticketCreateRender.apply(this, arguments)
     @scheduleWhatsappTemplateComposerRefresh()
+
+  _ticketCreateSubmit = App.TicketCreate.prototype.submit
+  App.TicketCreate.prototype.submit = (e) ->
+    if @currentChannel() is WHATSAPP_TEMPLATE_CREATE_TYPE
+      templateId = @$('.js-whatsapp-template-select').val()
+      if !templateId
+        App.Event.trigger 'notify',
+          type: 'error'
+          msg:  App.i18n.translateContent(__('Please select a WhatsApp template.'))
+        return
+
+      templateData = @whatsappTemplateFormData()
+      customer = @$('[name=customer_id_completion]').val() || @$('[name=customer_id]').val() || ''
+      title = templateData?.preferences?.name || __('WhatsApp template')
+      if customer
+        title = "#{title} (#{customer})"
+      @$('[name=title]').val(title)
+
+    _ticketCreateSubmit.apply(this, arguments)
 
   _ticketCreateArticleParams = App.TicketCreate.prototype.articleParams
   App.TicketCreate.prototype.articleParams = ->
@@ -173,6 +307,64 @@ if App.TicketCreate?
 
   App.TicketCreate.prototype.bodyFieldGroup = ->
     @$('[data-name=body], [name=body]').closest('.form-group').first()
+
+  App.TicketCreate.prototype.titleFieldGroup = ->
+    @$('[name=title]').closest('.form-group').first()
+
+  App.TicketCreate.prototype.applyWhatsappTemplateFormLayout = (enabled) ->
+    $titleGroup = @titleFieldGroup()
+    $bodyGroup = @bodyFieldGroup()
+    $titleInput = @$('[name=title]')
+
+    if enabled
+      $titleGroup.addClass('hide')
+      $bodyGroup.addClass('hide')
+      $titleInput.prop('required', false).removeAttr('required')
+      @$('.js-textModule, .js-textTools').closest('.form-group, .controls, .richtext-extended').addClass('hide')
+    else
+      $titleGroup.removeClass('hide')
+      $bodyGroup.removeClass('hide')
+      $titleInput.prop('required', true)
+      @$('.js-textModule, .js-textTools').closest('.form-group, .controls, .richtext-extended').removeClass('hide')
+
+  App.TicketCreate.prototype.collectWhatsappTemplateVariableValues = ->
+    variableValues = {
+      body: []
+      header: []
+      buttons: []
+    }
+
+    @$('.js-whatsapp-template-variable').each (idx, element) =>
+      $element = $(element)
+      section = $element.data('section')
+      value = $element.val()
+      index = parseInt($element.data('index'), 10)
+
+      if section is 'body'
+        variableValues.body[index] = value
+      else if section is 'header'
+        variableValues.header[index] = value
+      else if "#{section}".match(/^buttons-(\d+)$/)
+        buttonIndex = parseInt(section.replace('buttons-', ''), 10)
+        variableValues.buttons[buttonIndex] ||= []
+        variableValues.buttons[buttonIndex][index] = value
+
+    variableValues
+
+  App.TicketCreate.prototype.updateWhatsappTemplatePreview = ->
+    $preview = @$('.js-whatsapp-template-preview')
+    $content = @$('.js-whatsapp-template-preview-content')
+    templateId = @$('.js-whatsapp-template-select').val()
+    template = _.find(@whatsappTemplates || [], (item) -> "#{item.id}" is "#{templateId}")
+
+    if !template
+      $preview.addClass('hide')
+      $content.text('')
+      return
+
+    preview = buildWhatsappTemplatePreviewText(template, @collectWhatsappTemplateVariableValues())
+    $content.text(preview)
+    $preview.removeClass('hide')
 
   App.TicketCreate.prototype.activeWhatsappChannels = ->
     (@whatsappChannelGroups || []).filter((entry) -> entry.active is true)
@@ -263,10 +455,10 @@ if App.TicketCreate?
     if type isnt WHATSAPP_TEMPLATE_CREATE_TYPE
       @$('[name=group_id]').off('change.whatsappTemplate')
       $container.remove()
-      $bodyGroup.removeClass('hide')
+      @applyWhatsappTemplateFormLayout(false)
       return
 
-    $bodyGroup.addClass('hide')
+    @applyWhatsappTemplateFormLayout(true)
 
     if !$container.length
       $target = @$('.article-form-top')
@@ -284,6 +476,10 @@ if App.TicketCreate?
             <select class="form-control js-whatsapp-template-select">
               <option value="">#{App.i18n.translatePlain(__('Select template'))}</option>
             </select>
+          </div>
+          <div class="form-group js-whatsapp-template-preview hide">
+            <div class="formGroup-label"><label>#{App.i18n.translatePlain(__('Template preview'))}</label></div>
+            <div class="well well--no-border js-whatsapp-template-preview-content"></div>
           </div>
           <div class="js-whatsapp-template-variables u-mt"></div>
           <p class="help-block js-whatsapp-template-hint"></p>
@@ -305,6 +501,9 @@ if App.TicketCreate?
       @$('.js-whatsapp-template-select').off('change.whatsappTemplate').on 'change.whatsappTemplate', (e) =>
         @renderWhatsappTemplateVariables($(e.currentTarget).val())
 
+      @$('.js-whatsapp-template-variables').off('input.whatsappTemplate').on 'input.whatsappTemplate', '.js-whatsapp-template-variable', =>
+        @updateWhatsappTemplatePreview()
+
     @fetchWhatsappChannelGroups =>
       @populateWhatsappChannelSelect(@$('[name=group_id]').val())
       @loadWhatsappTemplatesForCreate()
@@ -320,6 +519,8 @@ if App.TicketCreate?
     @whatsappTemplates = []
     $select.find('option:not(:first)').remove()
     $hint.text('')
+    @$('.js-whatsapp-template-variables').empty()
+    @updateWhatsappTemplatePreview()
 
     return if !groupId && !channelId
 
@@ -354,7 +555,9 @@ if App.TicketCreate?
     $container.empty()
 
     template = _.find(@whatsappTemplates || [], (item) -> "#{item.id}" is "#{templateId}")
-    return if !template
+    if !template
+      @updateWhatsappTemplatePreview()
+      return
 
     variables = template.variables || {}
 
@@ -373,12 +576,14 @@ if App.TicketCreate?
         )
       $container.append($section)
 
-    renderFields(variables.body, 'body', __('Body variables'))
     renderFields(variables.header, 'header', __('Header variables'))
+    renderFields(variables.body, 'body', __('Body variables'))
 
     if !_.isEmpty(variables.buttons)
       for buttonVariables, buttonIndex in variables.buttons
         renderFields(buttonVariables, "buttons-#{buttonIndex}", __('Button variables'))
+
+    @updateWhatsappTemplatePreview()
 
   App.TicketCreate.prototype.whatsappTemplateFormData = ->
     templateId = @$('.js-whatsapp-template-select').val()
@@ -391,33 +596,9 @@ if App.TicketCreate?
     if channelId
       template.channel_id = parseInt(channelId, 10)
 
-    variableValues = {
-      body: []
-      header: []
-      buttons: []
-    }
+    variableValues = @collectWhatsappTemplateVariableValues()
 
-    @$('.js-whatsapp-template-variable').each (idx, element) =>
-      $element = $(element)
-      section = $element.data('section')
-      value = $element.val()
-      index = parseInt($element.data('index'), 10)
-
-      if section is 'body'
-        variableValues.body[index] = value
-      else if section is 'header'
-        variableValues.header[index] = value
-      else if "#{section}".match(/^buttons-(\d+)$/)
-        buttonIndex = parseInt(section.replace('buttons-', ''), 10)
-        variableValues.buttons[buttonIndex] ||= []
-        variableValues.buttons[buttonIndex][index] = value
-
-    preview = template.name
-    bodyComponent = _.find(template.components || [], (component) -> "#{component.type}".toUpperCase() is 'BODY')
-    if bodyComponent?.text
-      preview = bodyComponent.text
-      for value, index in variableValues.body
-        preview = preview.replace("{{#{index + 1}}}", value || "{{#{index + 1}}}")
+    preview = buildWhatsappTemplatePreviewText(template, variableValues)
 
     componentsJson = []
     if variableValues.body.some((value) -> !_.isEmpty(value))
