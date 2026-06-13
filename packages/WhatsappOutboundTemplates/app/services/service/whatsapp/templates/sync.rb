@@ -1,6 +1,6 @@
 # Copyright (C) 2012-2026 Zammad Foundation, https://zammad-foundation.org/
 
-class Service::Whatsapp::MessageTemplate::Sync < Service::Base
+class Service::Whatsapp::Templates::Sync < Service::Base
   attr_reader :channel
 
   def initialize(channel_id:)

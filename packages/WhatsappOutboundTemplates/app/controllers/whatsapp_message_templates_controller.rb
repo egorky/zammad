@@ -7,7 +7,7 @@ class WhatsappMessageTemplatesController < ApplicationController
     channel = resolve_channel
     raise Exceptions::UnprocessableContent, __('WhatsApp channel could not be resolved.') if channel.blank?
 
-    templates = Service::Whatsapp::MessageTemplate::List.execute(
+    templates = Service::Whatsapp::Templates::List.execute(
       channel_id: channel.id,
       status:     params[:status],
     )
@@ -19,7 +19,7 @@ class WhatsappMessageTemplatesController < ApplicationController
     channel = resolve_channel
     raise Exceptions::UnprocessableContent, __('WhatsApp channel could not be resolved.') if channel.blank?
 
-    templates = Service::Whatsapp::MessageTemplate::Sync.execute(
+    templates = Service::Whatsapp::Templates::Sync.execute(
       channel_id: channel.id,
     )
 

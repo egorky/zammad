@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe Service::Whatsapp::MessageTemplate::Sync do
+RSpec.describe Service::Whatsapp::Templates::Sync do
   subject(:service_result) { described_class.execute(channel_id: channel.id) }
 
   let(:channel) { create(:whatsapp_channel) }
