@@ -21,7 +21,7 @@ Zammad add-on package that extends WhatsApp Business API support with **outbound
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.7.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.8.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -32,7 +32,7 @@ zammad restart
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.7.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.8.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -86,6 +86,8 @@ Restart the application afterwards.
 | Ticket create shows only WhatsApp template | Upgrade to 1.0.6+ — migration restores phone/email create types alongside WhatsApp |
 | Outbound create fails | Customer must have **mobile** filled; group must have an active WhatsApp channel |
 | Templates empty after sync | Select the ticket group linked to your WhatsApp channel (not necessarily group ID 1) |
+| Template selector not visible on ticket create | Upgrade to 1.0.8+ — fixes legacy UI body field selector (`data-name=body`) |
+| Sync Templates button does nothing | Upgrade to 1.0.8+ — fixes click handler binding after channel list render |
 
 ## API
 
