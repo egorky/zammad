@@ -9,6 +9,10 @@ class Controllers::WhatsappMessageTemplatesControllerPolicy < Controllers::Appli
     sync_permission?
   end
 
+  def channel_groups?
+    agent_access?
+  end
+
   private
 
   def agent_access?

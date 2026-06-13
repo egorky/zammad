@@ -23,10 +23,19 @@ class WhatsappMessageTemplatesController < ApplicationController
       channel_id: channel.id,
     ).execute
 
+    template_payload = templates.map { |template| template_as_json(template) }
+
     render json: {
-      message:   __('WhatsApp templates synchronized successfully.'),
-      templates: templates.map { |template| template_as_json(template) },
+      message:   sync_message(template_payload),
+      count:     template_payload.length,
+      templates: template_payload,
     }
+  end
+
+  def channel_groups
+    channels = Channel.in_area('WhatsApp::Business').order(:group_id, :id)
+
+    render json: channels.map { |channel| channel_group_as_json(channel) }
   end
 
   private
@@ -42,6 +51,21 @@ class WhatsappMessageTemplatesController < ApplicationController
 
     Channel.in_area('WhatsApp::Business').find_by(group_id: group_id, active: true) ||
       Channel.in_area('WhatsApp::Business').find_by(group_id: group_id)
+  end
+
+  def sync_message(templates)
+    return __('No templates were found in your Meta account.') if templates.blank?
+
+    __('%{count} WhatsApp templates synchronized successfully.', count: templates.length)
+  end
+
+  def channel_group_as_json(channel)
+    {
+      channel_id: channel.id,
+      group_id:   channel.group_id,
+      group_name: channel.group&.name,
+      active:     channel.active,
+    }
   end
 
   def template_as_json(template)

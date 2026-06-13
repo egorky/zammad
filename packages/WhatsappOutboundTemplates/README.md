@@ -21,7 +21,7 @@ Zammad add-on package that extends WhatsApp Business API support with **outbound
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.8.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.9.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -32,7 +32,7 @@ zammad restart
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.8.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.9.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -88,9 +88,11 @@ Restart the application afterwards.
 | Templates empty after sync | Select the ticket group linked to your WhatsApp channel (not necessarily group ID 1) |
 | Template selector not visible on ticket create | Upgrade to 1.0.8+ — fixes legacy UI body field selector (`data-name=body`) |
 | Sync Templates button does nothing | Upgrade to 1.0.8+ — fixes click handler binding after channel list render |
+| Sync shows no feedback / templates not listed in ticket create | Upgrade to 1.0.9+ — sync modal with results; templates loaded via API (not client Channel cache) |
 
 ## API
 
 - `GET /api/v1/whatsapp_message_templates?channel_id=:id`
 - `GET /api/v1/whatsapp_message_templates?group_id=:id`
+- `GET /api/v1/whatsapp_message_templates/channel_groups`
 - `POST /api/v1/whatsapp_message_templates/sync` with `{ "channel_id": :id }` or `{ "group_id": :id }`

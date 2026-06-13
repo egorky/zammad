@@ -43,6 +43,24 @@ RSpec.describe WhatsappMessageTemplatesController, type: :request do
     end
   end
 
+  describe 'GET /api/v1/whatsapp_message_templates/channel_groups' do
+    it 'returns WhatsApp channel groups for agents' do
+      authenticated_as(agent)
+
+      get '/api/v1/whatsapp_message_templates/channel_groups', as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(json_response).to contain_exactly(
+        include(
+          'channel_id' => channel.id,
+          'group_id'   => channel.group_id,
+          'group_name' => channel.group.name,
+          'active'     => true,
+        )
+      )
+    end
+  end
+
   describe 'POST /api/v1/whatsapp_message_templates/sync' do
     it 'syncs templates for the given channel' do
       authenticated_as(agent)
@@ -65,6 +83,7 @@ RSpec.describe WhatsappMessageTemplatesController, type: :request do
       }, as: :json
 
       expect(response).to have_http_status(:ok)
+      expect(json_response['count']).to eq(1)
       expect(json_response['templates'].pluck('name')).to eq(['hello_world'])
     end
   end

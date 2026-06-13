@@ -9,6 +9,7 @@ Zammad::Application.routes.draw do
               path:       'whatsapp_message_templates',
               only:       %i[index] do
       collection do
+        get  :channel_groups
         post :sync
       end
     end
