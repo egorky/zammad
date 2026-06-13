@@ -86,6 +86,7 @@ RSpec.describe WhatsappMessageTemplatesController, type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(json_response['count']).to eq(1)
+      expect(json_response['message']).to include('1')
       expect(json_response['templates'].pluck('name')).to eq(['hello_world'])
     end
   end

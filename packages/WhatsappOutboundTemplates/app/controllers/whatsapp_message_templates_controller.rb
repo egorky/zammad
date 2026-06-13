@@ -56,7 +56,7 @@ class WhatsappMessageTemplatesController < ApplicationController
   def sync_message(templates)
     return __('No templates were found in your Meta account.') if templates.blank?
 
-    __('%{count} WhatsApp templates synchronized successfully.', count: templates.length)
+    format(__('%s WhatsApp templates synchronized successfully.'), templates.length)
   end
 
   def channel_group_as_json(channel)
