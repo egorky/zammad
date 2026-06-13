@@ -3,6 +3,10 @@
 require 'rails_helper'
 
 RSpec.describe Whatsapp::MessageTemplate, type: :model do
+  it 'uses the whatsapp_message_templates table' do
+    expect(described_class.table_name).to eq('whatsapp_message_templates')
+  end
+
   describe '.parse_variables_from_components' do
     it 'extracts body placeholders' do
       components = [

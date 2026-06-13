@@ -1,6 +1,8 @@
 # Copyright (C) 2012-2026 Zammad Foundation, https://zammad-foundation.org/
 
 class Whatsapp::MessageTemplate < ApplicationModel
+  self.table_name = 'whatsapp_message_templates'
+
   belongs_to :channel, class_name: 'Channel'
 
   validates :name, :language, :channel_id, presence: true
