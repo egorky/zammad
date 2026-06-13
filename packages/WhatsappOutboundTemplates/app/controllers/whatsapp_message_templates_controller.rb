@@ -5,7 +5,7 @@ class WhatsappMessageTemplatesController < ApplicationController
 
   def index
     channel = resolve_channel
-    raise Exceptions::UnprocessableContent, __('WhatsApp channel could not be resolved.') if channel.blank?
+    return render json: [] if channel.blank?
 
     templates = Service::Channel::Whatsapp::TemplateList.new(
       channel_id: channel.id,
@@ -32,13 +32,16 @@ class WhatsappMessageTemplatesController < ApplicationController
   private
 
   def resolve_channel
-    if params[:channel_id].present?
-      return Channel.in_area('WhatsApp::Business').find_by(id: params[:channel_id])
+    channel_id = params[:channel_id].presence
+    if channel_id.present?
+      return Channel.in_area('WhatsApp::Business').find_by(id: channel_id)
     end
 
-    return if params[:group_id].blank?
+    group_id = params[:group_id].presence
+    return if group_id.blank?
 
-    Channel.in_area('WhatsApp::Business').find_by(group_id: params[:group_id], active: true)
+    Channel.in_area('WhatsApp::Business').find_by(group_id: group_id, active: true) ||
+      Channel.in_area('WhatsApp::Business').find_by(group_id: group_id)
   end
 
   def template_as_json(template)

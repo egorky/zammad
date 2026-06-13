@@ -21,18 +21,18 @@ Zammad add-on package that extends WhatsApp Business API support with **outbound
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.5.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.6.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
 
 `zammad:package:post_install` is **required** for frontend changes. It runs migrations and rebuilds the Vue frontend assets.
 
-### Upgrade from 1.0.0 through 1.0.4
+### Upgrade from 1.0.0 through 1.0.5
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.5.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.6.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -80,9 +80,11 @@ Restart the application afterwards.
 | Build fails on post_install with `ArticleReplyPanel.vue` | Upgrade to 1.0.2+ (1.0.0/1.0.1 replaced core Vue files incorrectly) |
 | No Sync Templates button / ticket create tabs broken | Upgrade to 1.0.3+ and run `post_install` (legacy UI patches moved to `app_post`) |
 | Ticket create error `Cannot read properties of undefined (reading 'sender')` | Upgrade to 1.0.3+ — migration added `whatsapp-template-out` without legacy UI mapping |
-| API 500 `undefined method 'execute' for class Service::Whatsapp::...::List` | Upgrade to 1.0.5+ — services moved to `Service::Channel::Whatsapp::TemplateList` |
-| No Sync Templates button in WhatsApp admin | Upgrade to 1.0.5+ — button added to `whatsapp/index` view template |
+| API 422 on `whatsapp_message_templates?group_id=` | Upgrade to 1.0.6+ — returns `[]` when group has no WhatsApp channel; pick the correct group |
+| Sync button shows no message | Upgrade to 1.0.6+ — fixed POST `channel_id` parameter handling |
+| Ticket create shows only WhatsApp template | Upgrade to 1.0.6+ — migration restores phone/email create types alongside WhatsApp |
 | Outbound create fails | Customer must have **mobile** filled; group must have an active WhatsApp channel |
+| Templates empty after sync | Select the ticket group linked to your WhatsApp channel (not necessarily group ID 1) |
 
 ## API
 
