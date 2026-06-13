@@ -13,6 +13,7 @@ import {
 } from '#shared/composables/useWhatsappTemplateFormState.ts'
 import type { FormRef } from '#shared/components/Form/types.ts'
 import type {
+  TicketArticleAction,
   TicketArticleType,
   TicketArticleActionPlugin,
 } from '#shared/entities/ticket-article/action/plugins/types.ts'
@@ -72,6 +73,26 @@ const unmountComposer = (form?: FormRef | { formId?: string }) => {
 
 const actionPlugin: TicketArticleActionPlugin = {
   order: 250,
+
+  addActions(ticket) {
+    if (!isWhatsappTicket(ticket)) return []
+
+    const action: TicketArticleAction = {
+      apps: ['mobile', 'desktop'],
+      label: __('Send template'),
+      name: ARTICLE_TYPE,
+      icon: 'whatsapp',
+      alwaysVisible: true,
+      view: {
+        agent: ['change'],
+      },
+      perform(_ticket, _article, { openReplyForm }) {
+        openReplyForm({ articleType: ARTICLE_TYPE })
+      },
+    }
+
+    return [action]
+  },
 
   addTypes(ticket) {
     if (!isWhatsappTicket(ticket)) return []

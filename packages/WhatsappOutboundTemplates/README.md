@@ -21,18 +21,18 @@ Zammad add-on package that extends WhatsApp Business API support with **outbound
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install packages/WhatsappOutboundTemplates/WhatsappOutboundTemplates-1.0.1.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.2.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
 
 `zammad:package:post_install` is **required** for frontend changes. It runs migrations and rebuilds the Vue frontend assets.
 
-### Upgrade from 1.0.0
+### Upgrade from 1.0.0 or 1.0.1
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install packages/WhatsappOutboundTemplates/WhatsappOutboundTemplates-1.0.1.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.2.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -66,7 +66,7 @@ Restart the application afterwards.
 ### Reply on existing WhatsApp ticket
 
 1. Open a WhatsApp ticket
-2. Click **Send template** (or select **WhatsApp Template** in the article channel selector)
+2. Click **Send template** on any article (or select **WhatsApp Template** in the article channel selector)
 3. Choose template, language, and variables
 4. Submit the article
 
@@ -77,6 +77,7 @@ Restart the application afterwards.
 | No UI changes after install | Run `zammad:package:post_install` and restart Zammad |
 | No WhatsApp option on ticket create | Ensure migration ran; check **Admin → System → API → Ticket Create** settings include "WhatsApp template outbound" |
 | Templates list empty | Click **Sync Templates** in WhatsApp channel settings first |
+| Build fails on post_install with `ArticleReplyPanel.vue` | Upgrade to 1.0.2+ (1.0.0/1.0.1 replaced core Vue files incorrectly) |
 | Outbound create fails | Customer must have **mobile** filled; group must have an active WhatsApp channel |
 
 ## API

@@ -4,7 +4,7 @@ import { setupView } from '#tests/support/mock-user.ts'
 
 import { EnumChannelArea } from '#shared/graphql/types.ts'
 
-import { createTestArticleTypes, createTicket } from './utils.ts'
+import { createTestArticleActions, createTestArticleTypes, createTicket, createTicketArticle } from './utils.ts'
 
 const createWhatsappTicket = () => {
   return createTicket({
@@ -46,5 +46,17 @@ describe('whatsapp template article type', () => {
     const templateType = types.find((type) => type.value === 'whatsapp template message')
 
     expect(templateType).toBeUndefined()
+  })
+
+  it('adds a send template action on whatsapp tickets', () => {
+    setupView('agent')
+
+    const ticket = createWhatsappTicket()
+    const article = createTicketArticle()
+    const actions = createTestArticleActions(ticket, article, 'desktop')
+    const templateAction = actions.find((action) => action.name === 'whatsapp template message')
+
+    expect(templateAction?.label).toBe('Send template')
+    expect(templateAction?.alwaysVisible).toBe(true)
   })
 })
