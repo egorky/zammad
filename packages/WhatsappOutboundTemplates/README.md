@@ -21,18 +21,18 @@ Zammad add-on package that extends WhatsApp Business API support with **outbound
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.2.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.3.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
 
 `zammad:package:post_install` is **required** for frontend changes. It runs migrations and rebuilds the Vue frontend assets.
 
-### Upgrade from 1.0.0 or 1.0.1
+### Upgrade from 1.0.0, 1.0.1 or 1.0.2
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.2.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.3.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -78,6 +78,8 @@ Restart the application afterwards.
 | No WhatsApp option on ticket create | Ensure migration ran; check **Admin → System → API → Ticket Create** settings include "WhatsApp template outbound" |
 | Templates list empty | Click **Sync Templates** in WhatsApp channel settings first |
 | Build fails on post_install with `ArticleReplyPanel.vue` | Upgrade to 1.0.2+ (1.0.0/1.0.1 replaced core Vue files incorrectly) |
+| No Sync Templates button / ticket create tabs broken | Upgrade to 1.0.3+ and run `post_install` (legacy UI patches moved to `app_post`) |
+| Ticket create error `Cannot read properties of undefined (reading 'sender')` | Upgrade to 1.0.3+ — migration added `whatsapp-template-out` without legacy UI mapping |
 | Outbound create fails | Customer must have **mobile** filled; group must have an active WhatsApp channel |
 
 ## API
