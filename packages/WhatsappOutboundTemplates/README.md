@@ -21,7 +21,7 @@ Zammad add-on package that extends WhatsApp Business API support with **outbound
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.11.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.12.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -32,7 +32,7 @@ zammad restart
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.11.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.12.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -92,6 +92,7 @@ Restart the application afterwards.
 | `relation "message_templates" does not exist` | Upgrade to 1.0.10+ — fixes model table name (`whatsapp_message_templates`) |
 | Sync button still does nothing / no POST in logs | Upgrade to 1.0.11+ — global click handler via `App.Ajax.request` + toast and modal |
 | Multiple WhatsApp accounts | Upgrade to 1.0.11+ — account selector on ticket create when more than one channel exists |
+| Sync fails with `undefined method 'data' for PaginationRecords` | Upgrade to 1.0.12+ — compatible with whatsapp_sdk 1.1.0 (`records` + pagination) |
 
 ## API
 
