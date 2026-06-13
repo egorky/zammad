@@ -8,6 +8,7 @@ import type { WhatsappMessageTemplate } from './useWhatsappTemplateApi.ts'
 
 export interface WhatsappTemplateFormState {
   channelId?: number
+  groupId?: number
   templates: WhatsappMessageTemplate[]
   selectedTemplateId?: number
   selectedLanguage?: string
@@ -23,9 +24,9 @@ export interface WhatsappTemplateFormState {
 
 const states = new Map<string, WhatsappTemplateFormState>()
 const mountedApps = new Map<string, { app: App; instance: ComponentPublicInstance }>()
-let activeForm: FormRef | undefined
+let activeForm: FormRef | { formId?: string } | undefined
 
-export const setActiveWhatsappTemplateForm = (form?: FormRef) => {
+export const setActiveWhatsappTemplateForm = (form?: FormRef | { formId?: string }) => {
   activeForm = form
 }
 
@@ -85,7 +86,7 @@ export const buildTemplatePreview = (template?: WhatsappMessageTemplate, state?:
 export const mountWhatsappTemplateComposer = async (
   formId: string,
   container: HTMLElement,
-  channelId?: number,
+  scope?: { channelId?: number; groupId?: number },
 ) => {
   unmountWhatsappTemplateComposer(formId)
 
@@ -98,9 +99,14 @@ export const mountWhatsappTemplateComposer = async (
   container.prepend(mountPoint)
 
   const state = getWhatsappTemplateFormState(formId)
-  state.channelId = channelId
+  state.channelId = scope?.channelId
+  state.groupId = scope?.groupId
 
-  const app = createApp(WhatsappTemplateComposer, { formId, channelId })
+  const app = createApp(WhatsappTemplateComposer, {
+    formId,
+    channelId: scope?.channelId,
+    groupId: scope?.groupId,
+  })
   const instance = app.mount(mountPoint)
 
   mountedApps.set(formId, { app, instance })

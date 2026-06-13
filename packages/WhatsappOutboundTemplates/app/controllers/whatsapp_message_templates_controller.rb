@@ -4,10 +4,11 @@ class WhatsappMessageTemplatesController < ApplicationController
   prepend_before_action :authenticate_and_authorize!
 
   def index
-    raise Exceptions::UnprocessableContent, __('The required parameter \'channel_id\' is missing.') if params[:channel_id].blank?
+    channel = resolve_channel
+    raise Exceptions::UnprocessableContent, __('WhatsApp channel could not be resolved.') if channel.blank?
 
     templates = Service::Whatsapp::MessageTemplate::List.execute(
-      channel_id: params[:channel_id],
+      channel_id: channel.id,
       status:     params[:status],
     )
 
@@ -15,10 +16,11 @@ class WhatsappMessageTemplatesController < ApplicationController
   end
 
   def sync
-    raise Exceptions::UnprocessableContent, __('The required parameter \'channel_id\' is missing.') if params[:channel_id].blank?
+    channel = resolve_channel
+    raise Exceptions::UnprocessableContent, __('WhatsApp channel could not be resolved.') if channel.blank?
 
     templates = Service::Whatsapp::MessageTemplate::Sync.execute(
-      channel_id: params[:channel_id],
+      channel_id: channel.id,
     )
 
     render json: {
@@ -28,6 +30,16 @@ class WhatsappMessageTemplatesController < ApplicationController
   end
 
   private
+
+  def resolve_channel
+    if params[:channel_id].present?
+      return Channel.in_area('WhatsApp::Business').find_by(id: params[:channel_id])
+    end
+
+    return if params[:group_id].blank?
+
+    Channel.in_area('WhatsApp::Business').find_by(group_id: params[:group_id], active: true)
+  end
 
   def template_as_json(template)
     {

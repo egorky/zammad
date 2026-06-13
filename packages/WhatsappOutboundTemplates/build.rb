@@ -7,7 +7,7 @@ require 'pathname'
 
 package_root = Pathname.new(__dir__)
 package_name = 'WhatsappOutboundTemplates'
-version = '1.0.0'
+version = '1.0.1'
 output = package_root.join("#{package_name}-#{version}.zpm")
 
 ignore = %w[

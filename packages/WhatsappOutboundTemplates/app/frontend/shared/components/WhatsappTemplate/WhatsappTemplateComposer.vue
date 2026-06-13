@@ -18,6 +18,7 @@ import { i18n } from '#shared/i18n.ts'
 const props = defineProps<{
   formId: string
   channelId?: number
+  groupId?: number
 }>()
 
 const state = getWhatsappTemplateFormState(props.formId)
@@ -80,8 +81,8 @@ const selectedTemplate = computed(() => getSelectedTemplate(state))
 const preview = computed(() => buildTemplatePreview(selectedTemplate.value, state))
 
 const loadTemplates = async () => {
-  if (!props.channelId) {
-    state.error = i18n.t('WhatsApp channel is not available for this ticket.')
+  if (!props.channelId && !props.groupId) {
+    state.error = i18n.t('Select a group with an active WhatsApp channel first.')
     return
   }
 
@@ -89,7 +90,10 @@ const loadTemplates = async () => {
   state.error = undefined
 
   try {
-    state.templates = await fetchWhatsappTemplates(props.channelId)
+    state.templates = await fetchWhatsappTemplates({
+      channelId: props.channelId,
+      groupId: props.groupId,
+    })
   } catch (error) {
     state.error = error instanceof Error ? error.message : i18n.t('Unable to load templates.')
   } finally {
@@ -98,13 +102,16 @@ const loadTemplates = async () => {
 }
 
 const handleSync = async () => {
-  if (!props.channelId) return
+  if (!props.channelId && !props.groupId) return
 
   state.syncing = true
   state.error = undefined
 
   try {
-    const result = await syncWhatsappTemplates(props.channelId)
+    const result = await syncWhatsappTemplates({
+      channelId: props.channelId,
+      groupId: props.groupId,
+    })
     state.templates = result.templates
   } catch (error) {
     state.error = error instanceof Error ? error.message : i18n.t('Unable to sync templates.')
@@ -128,7 +135,7 @@ onMounted(() => {
 })
 
 watch(
-  () => props.channelId,
+  () => [props.channelId, props.groupId],
   () => {
     loadTemplates()
   },
@@ -144,7 +151,7 @@ watch(
       <button
         class="rounded px-3 py-1.5 text-sm font-semibold text-blue-800 hover:bg-blue-200 disabled:opacity-50 dark:text-blue-800"
         type="button"
-        :disabled="state.syncing || !channelId"
+        :disabled="state.syncing || (!channelId && !groupId)"
         @click="handleSync"
       >
         {{

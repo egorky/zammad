@@ -57,22 +57,41 @@ const request = async <T>(path: string, options: RequestInit = {}): Promise<T> =
   return response.json() as Promise<T>
 }
 
-export const fetchWhatsappTemplates = (channelId: number, status = 'APPROVED') => {
-  const params = new URLSearchParams({
-    channel_id: channelId.toString(),
-  })
+type WhatsappTemplateScope = {
+  channelId?: number
+  groupId?: number
+}
+
+const buildScopeParams = (scope: WhatsappTemplateScope) => {
+  const params = new URLSearchParams()
+
+  if (scope.channelId) params.set('channel_id', scope.channelId.toString())
+  if (scope.groupId) params.set('group_id', scope.groupId.toString())
+
+  return params
+}
+
+export const fetchWhatsappTemplates = (
+  scope: WhatsappTemplateScope,
+  status = 'APPROVED',
+) => {
+  const params = buildScopeParams(scope)
 
   if (status) params.set('status', status)
 
   return request<WhatsappMessageTemplate[]>(`/whatsapp_message_templates?${params.toString()}`)
 }
 
-export const syncWhatsappTemplates = (channelId: number) => {
+export const syncWhatsappTemplates = (scope: WhatsappTemplateScope) => {
   return request<{ message: string; templates: WhatsappMessageTemplate[] }>(
     '/whatsapp_message_templates/sync',
     {
       method: 'POST',
-      body: JSON.stringify({ channel_id: channelId }),
+      body: JSON.stringify(
+        scope.channelId
+          ? { channel_id: scope.channelId }
+          : { group_id: scope.groupId },
+      ),
     },
   )
 }

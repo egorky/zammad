@@ -54,13 +54,18 @@ const mountComposer = (ticket: TicketById, form?: FormRef) => {
   if (!container) return
 
   hideBodyField(form, true)
-  mountWhatsappTemplateComposer(form.formId, container as HTMLElement, getChannelId(ticket))
+  mountWhatsappTemplateComposer(form.formId, container as HTMLElement, {
+    channelId: getChannelId(ticket),
+  })
 }
 
-const unmountComposer = (form?: FormRef) => {
+const unmountComposer = (form?: FormRef | { formId?: string }) => {
   if (!form?.formId) return
 
-  hideBodyField(form, false)
+  if ('getNodeByName' in form) {
+    hideBodyField(form, false)
+  }
+
   unmountWhatsappTemplateComposer(form.formId)
   setActiveWhatsappTemplateForm(undefined)
 }
