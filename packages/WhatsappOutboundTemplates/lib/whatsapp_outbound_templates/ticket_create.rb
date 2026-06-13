@@ -6,10 +6,68 @@ module WhatsappOutboundTemplates
 
     def execute
       apply_whatsapp_template_ticket_data!(ticket_data)
+
+      if whatsapp_template_create?
+        existing_ticket = find_open_whatsapp_ticket(ticket_data)
+        return append_template_to_existing_ticket!(existing_ticket) if existing_ticket
+      end
+
       super
     end
 
     private
+
+    def whatsapp_template_create?
+      article = ticket_data[:article]
+      article.present? && article[:type] == WHATSAPP_TEMPLATE_ARTICLE_TYPE
+    end
+
+    def find_open_whatsapp_ticket(data)
+      customer = resolve_customer(data)
+      return if customer.blank?
+
+      channel_id = data.dig(:preferences, :channel_id)
+      return if channel_id.blank?
+
+      state_ids = Ticket::State.by_category_ids(:resolved)
+
+      Ticket.where(customer_id: customer.id).where.not(state_id: state_ids).reorder(:updated_at).find do |ticket|
+        ticket_channel_id = ticket.preferences[:channel_id] || ticket.preferences['channel_id']
+        ticket_channel_id.to_i == channel_id.to_i
+      end
+    end
+
+    def append_template_to_existing_ticket!(ticket)
+      Transaction.execute do
+        handle_shared_draft(ticket_data)
+
+        article_data = ticket_data.delete(:article)
+        tag_data     = ticket_data.delete(:tags)
+        link_data    = ticket_data.delete(:links)
+
+        preprocess_article_data!(ticket, article_data)
+
+        Pundit.authorize current_user, ticket, :update?
+
+        Service::Ticket::Article::Create
+          .with_current_user(current_user)
+          .execute(article_data: article_data, ticket: ticket)
+
+        assign_tags(ticket, tag_data)
+        add_links(ticket, link_data)
+        ensure_follow_up_state!(ticket)
+
+        ticket
+      end
+    end
+
+    def ensure_follow_up_state!(ticket)
+      follow_up_state = Ticket::State.find_by(default_follow_up: true)
+      return if follow_up_state.blank?
+      return if ticket.state_id == Ticket::State.find_by(default_create: true)&.id
+
+      ticket.update!(state_id: follow_up_state.id)
+    end
 
     def apply_whatsapp_template_ticket_data!(data)
       article = data[:article]
@@ -19,7 +77,7 @@ module WhatsappOutboundTemplates
       group = data[:group]
       raise Exceptions::UnprocessableContent, __('Group is required for WhatsApp template tickets.') if group.blank?
 
-      channel = Channel.in_area('WhatsApp::Business').find_by(group_id: group.id, active: true)
+      channel = resolve_whatsapp_channel(data, group)
       if channel.blank?
         raise Exceptions::UnprocessableContent, __('No active WhatsApp channel found for the selected group.')
       end
@@ -41,6 +99,18 @@ module WhatsappOutboundTemplates
           },
         },
       )
+    end
+
+    def resolve_whatsapp_channel(data, group)
+      channel_id = data.dig(:article, :preferences, :whatsapp_template, :channel_id)
+      channel_id ||= data.dig(:article, :preferences, 'whatsapp_template', 'channel_id')
+
+      if channel_id.present?
+        channel = Channel.in_area('WhatsApp::Business').find_by(id: channel_id, active: true)
+        return channel if channel.present?
+      end
+
+      Channel.in_area('WhatsApp::Business').find_by(group_id: group.id, active: true)
     end
 
     def resolve_customer(data)

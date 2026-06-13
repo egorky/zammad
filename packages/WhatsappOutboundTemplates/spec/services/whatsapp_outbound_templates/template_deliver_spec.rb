@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe Service::Ticket::Article::Type::WhatsappTemplateMessage::Deliver do
+RSpec.describe WhatsappOutboundTemplates::TemplateDeliver do
   subject(:service_result) { described_class.execute(article_id: article.id) }
 
   let(:article) do
@@ -20,9 +20,6 @@ RSpec.describe Service::Ticket::Article::Type::WhatsappTemplateMessage::Deliver 
   end
 
   let(:message_id) { "wamid.#{Faker::Crypto.unique.sha1}==" }
-  let(:internal_response) do
-    Struct.new(:messages).new([Struct.new(:id).new(message_id)])
-  end
 
   before do
     article

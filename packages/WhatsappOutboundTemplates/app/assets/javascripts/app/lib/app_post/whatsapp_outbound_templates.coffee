@@ -221,6 +221,7 @@ if App.TicketCreate?
   _ticketCreateRender = App.TicketCreate.prototype.render
   App.TicketCreate.prototype.render = (template = {}) ->
     _ticketCreateRender.apply(this, arguments)
+    @registerWhatsappTemplateCoreWorkflowCallback()
     @scheduleWhatsappTemplateComposerRefresh()
 
   _ticketCreateSubmit = App.TicketCreate.prototype.submit
@@ -302,8 +303,26 @@ if App.TicketCreate?
 
   App.TicketCreate.prototype.scheduleWhatsappTemplateComposerRefresh = ->
     @delay =>
-      @toggleWhatsappTemplateComposer(@currentChannel())
+      @reapplyWhatsappTemplateFormLayoutIfNeeded()
     , 120, 'whatsapp-template-compose'
+
+  App.TicketCreate.prototype.registerWhatsappTemplateCoreWorkflowCallback = ->
+    return if @whatsappTemplateCoreWorkflowRegistered
+
+    form = @controllerFormCreateMiddle
+    return if !form
+
+    @whatsappTemplateCoreWorkflowRegistered = true
+    form.core_workflow ||= {}
+    form.core_workflow.callbacks ||= []
+    form.core_workflow.callbacks.push =>
+      @reapplyWhatsappTemplateFormLayoutIfNeeded()
+
+  App.TicketCreate.prototype.reapplyWhatsappTemplateFormLayoutIfNeeded = ->
+    return if @currentChannel() isnt WHATSAPP_TEMPLATE_CREATE_TYPE
+
+    @applyWhatsappTemplateFormLayout(true)
+    @toggleWhatsappTemplateComposer(WHATSAPP_TEMPLATE_CREATE_TYPE)
 
   App.TicketCreate.prototype.bodyFieldGroup = ->
     @$('[data-name=body], [name=body]').closest('.form-group').first()
@@ -317,15 +336,15 @@ if App.TicketCreate?
     $titleInput = @$('[name=title]')
 
     if enabled
-      $titleGroup.addClass('hide')
-      $bodyGroup.addClass('hide')
+      $titleGroup.addClass('hide').css('display', 'none')
+      $bodyGroup.addClass('hide').css('display', 'none')
       $titleInput.prop('required', false).removeAttr('required')
-      @$('.js-textModule, .js-textTools').closest('.form-group, .controls, .richtext-extended').addClass('hide')
+      @$('.js-textModule, .js-textTools').closest('.form-group, .controls, .richtext-extended').addClass('hide').css('display', 'none')
     else
-      $titleGroup.removeClass('hide')
-      $bodyGroup.removeClass('hide')
+      $titleGroup.removeClass('hide').css('display', '')
+      $bodyGroup.removeClass('hide').css('display', '')
       $titleInput.prop('required', true)
-      @$('.js-textModule, .js-textTools').closest('.form-group, .controls, .richtext-extended').removeClass('hide')
+      @$('.js-textModule, .js-textTools').closest('.form-group, .controls, .richtext-extended').removeClass('hide').css('display', '')
 
   App.TicketCreate.prototype.collectWhatsappTemplateVariableValues = ->
     variableValues = {

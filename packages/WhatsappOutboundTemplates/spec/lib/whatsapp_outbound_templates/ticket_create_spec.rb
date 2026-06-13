@@ -43,4 +43,13 @@ RSpec.describe WhatsappOutboundTemplates::TicketCreate do
       ),
     )
   end
+
+  it 'reuses an open whatsapp ticket for the same customer and channel' do
+    existing_ticket = create(:whatsapp_ticket, channel: channel, customer: customer)
+
+    ticket = Service::Ticket::Create.execute(ticket_data: ticket_data)
+
+    expect(ticket.id).to eq(existing_ticket.id)
+    expect(ticket.articles.where(type: Ticket::Article::Type.lookup(name: 'whatsapp template message')).count).to eq(1)
+  end
 end
