@@ -1,6 +1,6 @@
 # Copyright (C) 2012-2026 Zammad Foundation, https://zammad-foundation.org/
 
-class EnsureWhatsappTemplateTicketCreateTypes
+class EnsureTicketCreateTypes
   STANDARD_TYPES = %w[phone-in phone-out email-out].freeze
   WHATSAPP_TYPE  = 'whatsapp-template-out'.freeze
 
