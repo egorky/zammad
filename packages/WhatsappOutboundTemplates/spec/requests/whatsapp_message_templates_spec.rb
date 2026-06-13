@@ -52,10 +52,12 @@ RSpec.describe WhatsappMessageTemplatesController, type: :request do
       expect(response).to have_http_status(:ok)
       expect(json_response).to contain_exactly(
         include(
-          'channel_id' => channel.id,
-          'group_id'   => channel.group_id,
-          'group_name' => channel.group.name,
-          'active'     => true,
+          'channel_id'   => channel.id,
+          'group_id'     => channel.group_id,
+          'group_name'   => channel.group.name,
+          'active'       => true,
+          'phone_number' => channel.options[:phone_number],
+          'account_name' => channel.options[:name],
         )
       )
     end

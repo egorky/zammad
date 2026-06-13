@@ -2,70 +2,75 @@
 
 WHATSAPP_TEMPLATE_CREATE_TYPE = 'whatsapp-template-out'
 
-# Admin: sync templates button handler on WhatsApp channel settings.
-if typeof ChannelWhatsapp isnt 'undefined'
-  ChannelWhatsapp.prototype.syncWhatsappTemplates = (e) ->
-    e.preventDefault()
-    e.stopPropagation()
+whatsappTemplateApiPath = ->
+  App.Config.get('api_path') || '/api/v1'
 
-    $button = $(e.currentTarget)
-    channelId = $button.attr('data-id')
-    return if !channelId
-    return if $button.hasClass('is-loading')
+showWhatsappTemplateSyncResultModal = (data, $container) ->
+  templates = data?.templates || []
+  count = data?.count ? templates.length
 
-    $button.addClass('is-loading is-active')
+  if !count
+    message = data?.message || __('No templates were found in your Meta account.')
+  else
+    lines = templates.map (template) ->
+      status = template.status || '-'
+      "• #{template.name} (#{template.language}) — #{status}"
 
-    @ajax(
-      id: 'whatsapp_templates_sync'
-      type: 'POST'
-      url: "#{@apiPath}/whatsapp_message_templates/sync"
-      data: JSON.stringify({ channel_id: channelId })
-      success: (data) =>
-        $button.removeClass('is-loading is-active')
-        @showWhatsappTemplateSyncResult(data)
-      error: (xhr) =>
-        $button.removeClass('is-loading is-active')
+    headline = data?.message || App.i18n.translateInline(__('%{count} templates synchronized:', count))
+    message = "#{headline}\n\n#{lines.join('\n')}"
+
+  container = $container || $('.content').first()
+  container = $('body') if !container.length
+
+  new App.ControllerConfirm(
+    head: __('WhatsApp Templates')
+    message: message
+    buttonSubmit: __('OK')
+    buttonCancel: false
+    buttonClass: 'btn--primary'
+    callback: =>
+    container: container
+  )
+
+# Global sync handler: works even when ChannelWhatsapp controller events are not bound.
+$(document).off('click.whatsappTemplateSync').on 'click.whatsappTemplateSync', '.js-sync-whatsapp-templates', (e) ->
+  e.preventDefault()
+  e.stopPropagation()
+
+  $button = $(e.currentTarget)
+  channelId = $button.attr('data-id')
+  return if !channelId
+  return if $button.hasClass('is-loading')
+
+  $button.addClass('is-loading is-active')
+
+  App.Ajax.request(
+    id: 'whatsapp_templates_sync'
+    type: 'POST'
+    url: "#{whatsappTemplateApiPath()}/whatsapp_message_templates/sync"
+    data: JSON.stringify({ channel_id: channelId })
+    success: (data) =>
+      $button.removeClass('is-loading is-active')
+      App.Event.trigger 'notify',
+        type: 'success'
+        msg:  App.i18n.translateContent(data.message || __('WhatsApp templates synchronized successfully.'))
+      showWhatsappTemplateSyncResultModal(data, $button.closest('.content'))
+    error: (xhr) =>
+      $button.removeClass('is-loading is-active')
+      response = {}
+      try
+        response = JSON.parse(xhr.responseText)
+      catch error
         response = {}
-        try
-          response = JSON.parse(xhr.responseText)
-        catch error
-          response = {}
 
-        message = response.error_human || response.error || __('Unable to sync WhatsApp templates.')
-        App.Event.trigger 'notify',
-          type: 'error'
-          msg:  App.i18n.translateContent(message)
-    )
+      message = response.error_human || response.error || __('Unable to sync WhatsApp templates.')
+      App.Event.trigger 'notify',
+        type: 'error'
+        msg:  App.i18n.translateContent(message)
+  )
 
-  ChannelWhatsapp.prototype.showWhatsappTemplateSyncResult = (data) ->
-    templates = data?.templates || []
-    count = data?.count ? templates.length
-
-    if !count
-      message = data?.message || __('No templates were found in your Meta account.')
-    else
-      lines = templates.map (template) ->
-        status = template.status || '-'
-        "• #{template.name} (#{template.language}) — #{status}"
-
-      headline = data?.message || App.i18n.translateInline(__('%{count} templates synchronized:', count))
-      message = "#{headline}\n\n#{lines.join('\n')}"
-
-    new App.ControllerConfirm(
-      head: __('WhatsApp Templates')
-      message: message
-      buttonSubmit: __('OK')
-      buttonCancel: false
-      buttonClass: 'btn--primary'
-      callback: =>
-      container: @el.closest('.content')
-    )
-
-  ChannelWhatsapp.prototype.bindWhatsappTemplateSyncButtons = ->
-    @$('.js-sync-whatsapp-templates').off('click.whatsappTemplateSync').on 'click.whatsappTemplateSync', (e) =>
-      @syncWhatsappTemplates(e)
-
-  _channelWhatsappLoad = ChannelWhatsapp.prototype.load
+# Admin: ChannelWhatsapp load keeps default render; sync uses global document handler above.
+if typeof ChannelWhatsapp isnt 'undefined'
   ChannelWhatsapp.prototype.load = =>
     @startLoading()
     @ajax(
@@ -77,7 +82,6 @@ if typeof ChannelWhatsapp isnt 'undefined'
         @stopLoading()
         App.Collection.loadAssets(data.assets)
         @render(data)
-        @bindWhatsappTemplateSyncButtons()
     )
 
 # Agent ticket create: support whatsapp-template-out in legacy UI.
@@ -170,6 +174,15 @@ if App.TicketCreate?
   App.TicketCreate.prototype.bodyFieldGroup = ->
     @$('[data-name=body], [name=body]').closest('.form-group').first()
 
+  App.TicketCreate.prototype.activeWhatsappChannels = ->
+    (@whatsappChannelGroups || []).filter((entry) -> entry.active is true)
+
+  App.TicketCreate.prototype.whatsappChannelLabel = (channel) ->
+    account = channel.account_name || __('WhatsApp')
+    phone = channel.phone_number || '-'
+    group = channel.group_name || '-'
+    "#{account} (#{phone}) — #{group}"
+
   App.TicketCreate.prototype.fetchWhatsappChannelGroups = (callback) ->
     if @whatsappChannelGroups
       callback(@whatsappChannelGroups)
@@ -187,11 +200,6 @@ if App.TicketCreate?
         callback(@whatsappChannelGroups)
     )
 
-  App.TicketCreate.prototype.whatsappChannelGroupsHint = (callback) ->
-    @fetchWhatsappChannelGroups (groups) =>
-      names = _.uniq(_.compact(groups.map((entry) -> entry.group_name)))
-      callback(names.join(', '))
-
   App.TicketCreate.prototype.updateWhatsappTemplateHint = (groupId) ->
     $hint = @$('.js-whatsapp-template-hint')
 
@@ -202,6 +210,50 @@ if App.TicketCreate?
         $hint.text App.i18n.translatePlain(__('No WhatsApp channel for this group. Groups with WhatsApp: %{groups}', availableGroups))
       else
         $hint.text App.i18n.translatePlain(__('No WhatsApp channel found. Configure one in Admin → Channels → WhatsApp and sync templates first.'))
+
+  App.TicketCreate.prototype.populateWhatsappChannelSelect = (groupId) ->
+    $channelGroup = @$('.js-whatsapp-channel-group')
+    $channelSelect = @$('.js-whatsapp-channel-select')
+    channels = @activeWhatsappChannels()
+
+    $channelSelect.find('option').remove()
+
+    if !channels.length
+      $channelGroup.addClass('hide')
+      return
+
+    preferredChannelId = undefined
+    if groupId
+      groupChannel = _.find(channels, (entry) -> "#{entry.group_id}" is "#{groupId}")
+      preferredChannelId = groupChannel?.channel_id
+
+    for channel in channels
+      selected = if preferredChannelId then "#{channel.channel_id}" is "#{preferredChannelId}" else false
+      selectedAttr = if selected then ' selected' else ''
+      label = @whatsappChannelLabel(channel)
+      $channelSelect.append("<option value=\"#{channel.channel_id}\"#{selectedAttr}>#{App.Utils.htmlEscape(label)}</option>")
+
+    if !preferredChannelId && channels.length is 1
+      $channelSelect.find('option:first').prop('selected', true)
+
+    if channels.length > 1
+      $channelGroup.removeClass('hide')
+    else
+      $channelGroup.addClass('hide')
+
+  App.TicketCreate.prototype.selectedWhatsappChannelId = ->
+    @$('.js-whatsapp-channel-select').val()
+
+  App.TicketCreate.prototype.syncTicketGroupWithWhatsappChannel = (channelId) ->
+    return if !channelId
+
+    channel = _.find(@activeWhatsappChannels(), (entry) -> "#{entry.channel_id}" is "#{channelId}")
+    return if !channel
+
+    currentGroupId = @$('[name=group_id]').val()
+    return if "#{currentGroupId}" is "#{channel.group_id}"
+
+    @$('[name=group_id]').val(channel.group_id).trigger('change', non_interactive: true)
 
   App.TicketCreate.prototype.toggleWhatsappTemplateComposer = (type) ->
     type ||= @currentChannel()
@@ -223,10 +275,16 @@ if App.TicketCreate?
       $target.append(
         """
         <div class="form-group js-whatsapp-template-composer">
-          <div class="formGroup-label"><label>#{App.i18n.translatePlain(__('WhatsApp Template'))}</label></div>
-          <select class="form-control js-whatsapp-template-select">
-            <option value="">#{App.i18n.translatePlain(__('Select template'))}</option>
-          </select>
+          <div class="form-group js-whatsapp-channel-group hide">
+            <div class="formGroup-label"><label>#{App.i18n.translatePlain(__('WhatsApp Account'))}</label></div>
+            <select class="form-control js-whatsapp-channel-select"></select>
+          </div>
+          <div class="form-group">
+            <div class="formGroup-label"><label>#{App.i18n.translatePlain(__('WhatsApp Template'))}</label></div>
+            <select class="form-control js-whatsapp-template-select">
+              <option value="">#{App.i18n.translatePlain(__('Select template'))}</option>
+            </select>
+          </div>
           <div class="js-whatsapp-template-variables u-mt"></div>
           <p class="help-block js-whatsapp-template-hint"></p>
         </div>
@@ -235,17 +293,27 @@ if App.TicketCreate?
 
       @$('[name=group_id]').off('change.whatsappTemplate').on 'change.whatsappTemplate', =>
         return if @currentChannel() isnt WHATSAPP_TEMPLATE_CREATE_TYPE
+        @fetchWhatsappChannelGroups =>
+          @populateWhatsappChannelSelect(@$('[name=group_id]').val())
+          @loadWhatsappTemplatesForCreate()
+
+      @$('.js-whatsapp-channel-select').off('change.whatsappTemplate').on 'change.whatsappTemplate', (e) =>
+        channelId = $(e.currentTarget).val()
+        @syncTicketGroupWithWhatsappChannel(channelId)
         @loadWhatsappTemplatesForCreate()
 
       @$('.js-whatsapp-template-select').off('change.whatsappTemplate').on 'change.whatsappTemplate', (e) =>
         @renderWhatsappTemplateVariables($(e.currentTarget).val())
 
-    @loadWhatsappTemplatesForCreate()
+    @fetchWhatsappChannelGroups =>
+      @populateWhatsappChannelSelect(@$('[name=group_id]').val())
+      @loadWhatsappTemplatesForCreate()
 
   App.TicketCreate.prototype.loadWhatsappTemplatesForCreate = ->
     return if @currentChannel() isnt WHATSAPP_TEMPLATE_CREATE_TYPE
 
     groupId = @$('[name=group_id]').val()
+    channelId = @selectedWhatsappChannelId()
     $select = @$('.js-whatsapp-template-select')
     $hint = @$('.js-whatsapp-template-hint')
 
@@ -253,12 +321,16 @@ if App.TicketCreate?
     $select.find('option:not(:first)').remove()
     $hint.text('')
 
-    return if !groupId
+    return if !groupId && !channelId
+
+    if !channelId
+      @updateWhatsappTemplateHint(groupId)
+      return
 
     @ajax(
       id: 'whatsapp_templates_list'
       type: 'GET'
-      url: "#{@apiPath}/whatsapp_message_templates?group_id=#{groupId}&status=APPROVED"
+      url: "#{@apiPath}/whatsapp_message_templates?channel_id=#{channelId}&status=APPROVED"
       success: (data) =>
         @whatsappTemplates = data || []
         for template in @whatsappTemplates
@@ -267,12 +339,7 @@ if App.TicketCreate?
 
         return if @whatsappTemplates.length
 
-        @fetchWhatsappChannelGroups (groups) =>
-          groupEntry = _.find(groups, (entry) -> "#{entry.group_id}" is "#{groupId}")
-          if groupEntry
-            $hint.text App.i18n.translatePlain(__('No templates found for this WhatsApp channel. Click Sync Templates in Admin → Channels → WhatsApp first.'))
-          else
-            @updateWhatsappTemplateHint(groupId)
+        $hint.text App.i18n.translatePlain(__('No templates found for this WhatsApp account. Click Sync Templates in Admin → Channels → WhatsApp first.'))
       error: (xhr) =>
         response = {}
         try
@@ -319,6 +386,10 @@ if App.TicketCreate?
 
     template = _.find(@whatsappTemplates || [], (item) -> "#{item.id}" is "#{templateId}")
     return if !template
+
+    channelId = @selectedWhatsappChannelId()
+    if channelId
+      template.channel_id = parseInt(channelId, 10)
 
     variableValues = {
       body: []

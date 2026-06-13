@@ -61,10 +61,12 @@ class WhatsappMessageTemplatesController < ApplicationController
 
   def channel_group_as_json(channel)
     {
-      channel_id: channel.id,
-      group_id:   channel.group_id,
-      group_name: channel.group&.name,
-      active:     channel.active,
+      channel_id:   channel.id,
+      group_id:     channel.group_id,
+      group_name:   channel.group&.name,
+      active:       channel.active,
+      phone_number: channel.options[:phone_number],
+      account_name: channel.options[:name],
     }
   end
 
