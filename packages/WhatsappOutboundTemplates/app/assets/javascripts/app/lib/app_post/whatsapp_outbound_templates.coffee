@@ -2,25 +2,10 @@
 
 WHATSAPP_TEMPLATE_CREATE_TYPE = 'whatsapp-template-out'
 
-# Admin: sync templates button on WhatsApp channel settings.
+# Admin: sync templates button handler on WhatsApp channel settings.
 if typeof ChannelWhatsapp isnt 'undefined'
   ChannelWhatsapp.prototype.events ||= {}
   ChannelWhatsapp.prototype.events['click .js-sync-whatsapp-templates'] = 'syncWhatsappTemplates'
-
-  _channelWhatsappRender = ChannelWhatsapp.prototype.render
-  ChannelWhatsapp.prototype.render = (data) ->
-    _channelWhatsappRender.apply(this, arguments)
-    @injectWhatsappTemplateSyncButtons()
-
-  ChannelWhatsapp.prototype.injectWhatsappTemplateSyncButtons = ->
-    @$('.action[data-id]').each (idx, element) =>
-      $element = $(element)
-      return if $element.find('.js-sync-whatsapp-templates').length
-
-      channelId = $element.data('id')
-      $element.find('.action-controls').prepend(
-        "<button type=\"button\" class=\"btn btn--secondary js-sync-whatsapp-templates\" data-id=\"#{channelId}\">#{App.i18n.translatePlain('Sync Templates')}</button>"
-      )
 
   ChannelWhatsapp.prototype.syncWhatsappTemplates = (e) ->
     e.preventDefault()

@@ -2,8 +2,8 @@
 
 require 'rails_helper'
 
-RSpec.describe Service::Whatsapp::Templates::List do
-  subject(:service_result) { described_class.execute(channel_id: channel.id, status: 'APPROVED') }
+RSpec.describe Service::Channel::Whatsapp::TemplateList do
+  subject(:service_result) { described_class.new(channel_id: channel.id, status: 'APPROVED').execute }
 
   let(:channel) { create(:whatsapp_channel) }
 

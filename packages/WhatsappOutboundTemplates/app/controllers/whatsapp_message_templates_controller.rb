@@ -7,10 +7,10 @@ class WhatsappMessageTemplatesController < ApplicationController
     channel = resolve_channel
     raise Exceptions::UnprocessableContent, __('WhatsApp channel could not be resolved.') if channel.blank?
 
-    templates = Service::Whatsapp::Templates::List.execute(
+    templates = Service::Channel::Whatsapp::TemplateList.new(
       channel_id: channel.id,
       status:     params[:status],
-    )
+    ).execute
 
     render json: templates.map { |template| template_as_json(template) }
   end
@@ -19,9 +19,9 @@ class WhatsappMessageTemplatesController < ApplicationController
     channel = resolve_channel
     raise Exceptions::UnprocessableContent, __('WhatsApp channel could not be resolved.') if channel.blank?
 
-    templates = Service::Whatsapp::Templates::Sync.execute(
+    templates = Service::Channel::Whatsapp::TemplateSync.new(
       channel_id: channel.id,
-    )
+    ).execute
 
     render json: {
       message:   __('WhatsApp templates synchronized successfully.'),
