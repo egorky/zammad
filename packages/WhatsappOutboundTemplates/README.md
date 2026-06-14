@@ -21,7 +21,7 @@ Zammad add-on package that extends WhatsApp Business API support with **outbound
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.18.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.19.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -32,7 +32,7 @@ zammad restart
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.18.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.19.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -99,7 +99,7 @@ Restart the application afterwards.
 | Template not sent / job fails with `undefined method 'execute' for Deliver` | Upgrade to 1.0.17+ — delivery runs via nested `CommunicateWhatsappTemplateJob::Deliver` |
 | Template not sent: `Can't find ticket.preferences['channel_id']` | Upgrade to 1.0.18+ — legacy REST ticket create now sets WhatsApp ticket preferences |
 | Title/Text fields reappear after changing group | Upgrade to 1.0.15+ — re-applies layout after core workflow |
-| New ticket created while WhatsApp conversation is open | Upgrade to 1.0.15+ — reuses open WhatsApp ticket for same customer/channel |
+| New ticket created while WhatsApp conversation is open | Upgrade to 1.0.19+ — reuses open WhatsApp ticket via REST and sets `create_article_type` to `whatsapp message` |
 
 ## API
 

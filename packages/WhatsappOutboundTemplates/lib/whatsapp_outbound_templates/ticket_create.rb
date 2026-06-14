@@ -6,7 +6,7 @@ module WhatsappOutboundTemplates
       apply_whatsapp_template_ticket_data!
 
       if whatsapp_template_create?
-        existing_ticket = find_open_whatsapp_ticket
+        existing_ticket = find_open_whatsapp_ticket_for_service
         return append_template_to_existing_ticket!(existing_ticket) if existing_ticket
       end
 
@@ -19,19 +19,17 @@ module WhatsappOutboundTemplates
       WhatsappOutboundTemplates::Preferences.whatsapp_template_article?(ticket_data[:article])
     end
 
-    def find_open_whatsapp_ticket
+    def find_open_whatsapp_ticket_for_service
       customer = resolve_customer(ticket_data)
       return if customer.blank?
 
       channel_id = ticket_data.dig(:preferences, :channel_id) || ticket_data.dig(:preferences, 'channel_id')
       return if channel_id.blank?
 
-      state_ids = Ticket::State.by_category_ids(:resolved)
-
-      Ticket.where(customer_id: customer.id).where.not(state_id: state_ids).reorder(:updated_at).find do |ticket|
-        ticket_channel_id = ticket.preferences[:channel_id] || ticket.preferences['channel_id']
-        ticket_channel_id.to_i == channel_id.to_i
-      end
+      WhatsappOutboundTemplates::Preferences.find_open_whatsapp_ticket(
+        customer_id: customer.id,
+        channel_id:  channel_id,
+      )
     end
 
     def append_template_to_existing_ticket!(ticket)
@@ -52,18 +50,10 @@ module WhatsappOutboundTemplates
 
         assign_tags(ticket, tag_data)
         add_links(ticket, link_data)
-        ensure_follow_up_state!(ticket)
+        WhatsappOutboundTemplates::Preferences.ensure_follow_up_state!(ticket)
 
         ticket
       end
-    end
-
-    def ensure_follow_up_state!(ticket)
-      follow_up_state = Ticket::State.find_by(default_follow_up: true)
-      return if follow_up_state.blank?
-      return if ticket.state_id == Ticket::State.find_by(default_create: true)&.id
-
-      ticket.update!(state_id: follow_up_state.id)
     end
 
     def apply_whatsapp_template_ticket_data!
@@ -98,6 +88,11 @@ module WhatsappOutboundTemplates
           },
         },
       )
+
+      whatsapp_message_type = Ticket::Article::Type.lookup(name: 'whatsapp message')
+      if whatsapp_message_type.present?
+        ticket_data[:create_article_type_id] = whatsapp_message_type.id
+      end
     end
 
     def resolve_customer(data)

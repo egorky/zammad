@@ -19,15 +19,52 @@ module WhatsappOutboundTemplates
       preferences = ticket.preferences.merge(
         'channel_id'   => channel.id,
         'channel_area' => channel.area,
-        'whatsapp'     => {
+        'whatsapp'     => (ticket.preferences['whatsapp'] || {}).merge(
           'from' => {
             'phone_number' => phone_number,
             'display_name' => customer&.fullname.presence || customer&.login,
           },
-        },
+        ),
       )
 
       ticket.update!(preferences: preferences)
+    end
+
+    def find_open_whatsapp_ticket(customer_id:, channel_id:)
+      return if customer_id.blank? || channel_id.blank?
+
+      state_ids = Ticket::State.by_category_ids(:resolved)
+
+      Ticket.where(customer_id: customer_id).where.not(state_id: state_ids).reorder(:updated_at).find do |ticket|
+        ticket_channel_id = ticket.preferences[:channel_id] || ticket.preferences['channel_id']
+        ticket_channel_id.to_i == channel_id.to_i
+      end
+    end
+
+    def resolve_channel_from_params(article:, group_id:)
+      ticket = Ticket.new(group_id: group_id)
+      resolve_channel(ticket: ticket, article: normalize_article_data(article))
+    end
+
+    def ensure_whatsapp_create_article_type!(ticket)
+      whatsapp_message_type = Ticket::Article::Type.lookup(name: 'whatsapp message')
+      return if whatsapp_message_type.blank?
+      return if ticket.create_article_type_id == whatsapp_message_type.id
+
+      ticket.update!(create_article_type_id: whatsapp_message_type.id)
+    end
+
+    def ensure_follow_up_state!(ticket)
+      follow_up_state = Ticket::State.find_by(default_follow_up: true)
+      return if follow_up_state.blank?
+      return if ticket.state_id == Ticket::State.find_by(default_create: true)&.id
+
+      ticket.update!(state_id: follow_up_state.id)
+    end
+
+    def normalize_article_data(article_data)
+      data = article_data.respond_to?(:to_unsafe_h) ? article_data.to_unsafe_h : article_data
+      data.deep_symbolize_keys
     end
 
     def resolve_channel(ticket:, article:)
@@ -64,10 +101,12 @@ module WhatsappOutboundTemplates
     def whatsapp_template_article?(article_data)
       return false if article_data.blank?
 
-      type = article_data[:type] || article_data['type']
+      data = normalize_article_data(article_data)
+
+      type = data[:type]
       return type == WHATSAPP_TEMPLATE_ARTICLE_TYPE if type.present?
 
-      type_id = article_data[:type_id] || article_data['type_id']
+      type_id = data[:type_id]
       return false if type_id.blank?
 
       Ticket::Article::Type.lookup(id: type_id)&.name == WHATSAPP_TEMPLATE_ARTICLE_TYPE

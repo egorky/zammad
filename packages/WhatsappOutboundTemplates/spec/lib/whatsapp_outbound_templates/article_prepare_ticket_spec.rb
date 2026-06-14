@@ -35,4 +35,24 @@ RSpec.describe WhatsappOutboundTemplates::ArticlePrepareTicket do
       ),
     )
   end
+
+  it 'uses whatsapp message as create article type for template tickets' do
+    create(
+      :ticket_article,
+      ticket:      ticket,
+      type_name:   'whatsapp template message',
+      sender_name: 'Agent',
+      created_by:  agent,
+      preferences: {
+        whatsapp_template: {
+          name:       'hello_world',
+          language:   'en_US',
+          channel_id: channel.id,
+        },
+      },
+    )
+
+    whatsapp_type = Ticket::Article::Type.lookup(name: 'whatsapp message')
+    expect(ticket.reload.create_article_type_id).to eq(whatsapp_type.id)
+  end
 end

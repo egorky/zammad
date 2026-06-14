@@ -3,6 +3,7 @@
 Rails.application.config.to_prepare do
   Ticket::Article.include WhatsappOutboundTemplates::EnqueueJob
   Ticket::Article.include WhatsappOutboundTemplates::ArticlePrepareTicket
+  TicketsController.prepend WhatsappOutboundTemplates::TicketsControllerCreate
   Service::Ticket::Create.prepend WhatsappOutboundTemplates::TicketCreate
 
   Channel::Driver::Whatsapp.prepend(Module.new do
