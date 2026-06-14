@@ -21,7 +21,7 @@ Zammad add-on package that extends WhatsApp Business API support with **outbound
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.15.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.16.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -32,7 +32,7 @@ zammad restart
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.15.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.16.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```

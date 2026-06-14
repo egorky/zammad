@@ -1,6 +1,9 @@
 # Copyright (C) 2012-2026 Zammad Foundation, https://zammad-foundation.org/
 
 Rails.application.config.to_prepare do
+  # Preload delivery service to avoid Zeitwerk namespace collisions in workers.
+  Service::Whatsapp::Outbound::TemplateDeliver
+
   Ticket::Article.include WhatsappOutboundTemplates::EnqueueJob
   Service::Ticket::Create.prepend WhatsappOutboundTemplates::TicketCreate
 

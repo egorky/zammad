@@ -1,6 +1,6 @@
 # Copyright (C) 2012-2026 Zammad Foundation, https://zammad-foundation.org/
 
-module WhatsappOutboundTemplates
+module Service::Whatsapp::Outbound
   class TemplateDeliver < Service::Ticket::Article::Type::BaseDeliver
     private
 

@@ -7,6 +7,6 @@ class CommunicateWhatsappTemplateJob < ApplicationJob
   }
 
   def perform(article_id)
-    WhatsappOutboundTemplates::TemplateDeliver.execute(article_id: article_id)
+    Service::Whatsapp::Outbound::TemplateDeliver.execute(article_id: article_id)
   end
 end

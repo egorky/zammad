@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe WhatsappOutboundTemplates::TemplateDeliver do
+RSpec.describe Service::Whatsapp::Outbound::TemplateDeliver do
   subject(:service_result) { described_class.execute(article_id: article.id) }
 
   let(:article) do
@@ -34,5 +34,9 @@ RSpec.describe WhatsappOutboundTemplates::TemplateDeliver do
         whatsapp:        include(message_id: message_id),
       ),
     )
+  end
+
+  it 'exposes the Service::Base execute interface' do
+    expect(described_class).to respond_to(:execute)
   end
 end
