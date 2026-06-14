@@ -1,5 +1,7 @@
 // Copyright (C) 2012-2026 Zammad Foundation, https://zammad-foundation.org/
 
+import { nextTick } from 'vue'
+
 import { EnumChannelArea } from '#shared/graphql/types.ts'
 import {
   buildTemplatePreview,
@@ -11,6 +13,7 @@ import {
   setActiveWhatsappTemplateForm,
   unmountWhatsappTemplateComposer,
 } from '#shared/composables/useWhatsappTemplateFormState.ts'
+import { useAppName } from '#shared/composables/useAppName.ts'
 import type { FormRef } from '#shared/components/Form/types.ts'
 import type {
   TicketArticleAction,
@@ -21,6 +24,7 @@ import type { TicketById, TicketFormData, TicketUpdateFormData } from '#shared/e
 import type { FormSubmitData } from '#shared/components/Form/types.ts'
 
 const ARTICLE_TYPE = 'whatsapp template message'
+const TEMPLATE_ACTION_ICON = 'snippet'
 
 const isWhatsappTicket = (ticket: TicketById) => {
   return (
@@ -40,22 +44,47 @@ const hideBodyField = (form?: FormRef, hidden = true) => {
   body?.emit('prop:hidden', hidden)
 }
 
-const mountComposer = (ticket: TicketById, form?: FormRef) => {
-  if (!form?.formId) return
+const waitForMobileReplyForm = async () => {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const replyForm = document.querySelector('[data-ticket-article-reply-form]')
 
-  setActiveWhatsappTemplateForm(form)
+    if (replyForm?.children.length) return
+
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve())
+    })
+  }
+}
+
+const resolveComposerContainer = (form: FormRef) => {
+  if (useAppName() === 'mobile') {
+    const replyForm = document.querySelector('[data-ticket-article-reply-form]')
+    if (replyForm) return replyForm as HTMLElement
+  }
 
   const bodyNode = form.getNodeByName('body')
   const element = bodyNode?.context?.id
     ? document.querySelector(`[data-id="${bodyNode.context.id}"]`)?.parentElement
     : null
 
-  const container = element || document.querySelector(`[data-form-id="${form.formId}"]`)
+  return (element || document.querySelector(`[data-form-id="${form.formId}"]`)) as HTMLElement | null
+}
 
+const mountComposer = async (ticket: TicketById, form?: FormRef) => {
+  if (!form?.formId) return
+
+  setActiveWhatsappTemplateForm(form)
+
+  if (useAppName() === 'mobile') {
+    await nextTick()
+    await waitForMobileReplyForm()
+  }
+
+  const container = resolveComposerContainer(form)
   if (!container) return
 
   hideBodyField(form, true)
-  mountWhatsappTemplateComposer(form.formId, container as HTMLElement, {
+  await mountWhatsappTemplateComposer(form.formId, container, {
     channelId: getChannelId(ticket),
   })
 }
@@ -71,7 +100,6 @@ const unmountComposer = (form?: FormRef | { formId?: string }) => {
   setActiveWhatsappTemplateForm(undefined)
 }
 
-
 const actionPlugin: TicketArticleActionPlugin = {
   order: 310,
 
@@ -82,7 +110,7 @@ const actionPlugin: TicketArticleActionPlugin = {
       apps: ['mobile', 'desktop'],
       label: __('Send template'),
       name: ARTICLE_TYPE,
-      icon: 'file-text',
+      icon: TEMPLATE_ACTION_ICON,
       alwaysVisible: true,
       view: {
         agent: ['change'],
@@ -103,7 +131,7 @@ const actionPlugin: TicketArticleActionPlugin = {
       value: ARTICLE_TYPE,
       label: __('WhatsApp Template'),
       buttonLabel: __('Send template'),
-      icon: 'file-text',
+      icon: TEMPLATE_ACTION_ICON,
       view: {
         agent: ['change'],
       },
@@ -115,10 +143,10 @@ const actionPlugin: TicketArticleActionPlugin = {
         },
       },
       onSelected(ticket, _context, form) {
-        mountComposer(ticket, form)
+        void mountComposer(ticket, form)
       },
       onOpened(ticket, _context, form) {
-        mountComposer(ticket, form)
+        void mountComposer(ticket, form)
       },
       onDeselected() {
         unmountComposer(getActiveWhatsappTemplateForm())

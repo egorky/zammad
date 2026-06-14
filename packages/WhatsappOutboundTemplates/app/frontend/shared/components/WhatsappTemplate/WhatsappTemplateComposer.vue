@@ -1,7 +1,7 @@
 <!-- Copyright (C) 2012-2026 Zammad Foundation, https://zammad-foundation.org/ -->
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 import {
   fetchWhatsappTemplates,
@@ -13,6 +13,7 @@ import {
   getSelectedTemplate,
   getWhatsappTemplateFormState,
 } from '#shared/composables/useWhatsappTemplateFormState.ts'
+import { useAppName } from '#shared/composables/useAppName.ts'
 import { i18n } from '#shared/i18n.ts'
 
 const props = defineProps<{
@@ -22,6 +23,9 @@ const props = defineProps<{
 }>()
 
 const state = getWhatsappTemplateFormState(props.formId)
+const isMobile = computed(() => useAppName() === 'mobile')
+const showTemplatePicker = ref(false)
+const showLanguagePicker = ref(false)
 
 const templateOptions = computed(() => {
   const names = [...new Set(state.templates.map((template) => template.name))]
@@ -61,6 +65,7 @@ const selectedTemplateName = computed({
     state.selectedTemplateId = template?.id
     state.selectedLanguage = template?.language
     resetVariableValues(template)
+    showTemplatePicker.value = false
   },
 })
 
@@ -73,12 +78,29 @@ const selectedLanguage = computed({
     )
     state.selectedTemplateId = template?.id
     resetVariableValues(template)
+    showLanguagePicker.value = false
   },
 })
 
 const selectedTemplate = computed(() => getSelectedTemplate(state))
 
 const preview = computed(() => buildTemplatePreview(selectedTemplate.value, state))
+
+const containerClass = computed(() => {
+  if (isMobile.value) {
+    return 'border-gray-900 bg-gray-600 text-white'
+  }
+
+  return 'border-neutral-300 bg-neutral-50 dark:border-gray-900 dark:bg-gray-500'
+})
+
+const fieldClass = computed(() => {
+  if (isMobile.value) {
+    return 'rounded border border-gray-900 bg-gray-500 px-3 py-3 text-base text-white'
+  }
+
+  return 'rounded border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-gray-900 dark:bg-gray-500 dark:text-white'
+})
 
 const loadTemplates = async () => {
   if (!props.channelId && !props.groupId) {
@@ -130,6 +152,14 @@ const resetVariableValues = (template?: WhatsappMessageTemplate) => {
   }
 }
 
+const selectTemplateOption = (value: string) => {
+  selectedTemplateName.value = value
+}
+
+const selectLanguageOption = (value: string) => {
+  selectedLanguage.value = value
+}
+
 onMounted(() => {
   loadTemplates()
 })
@@ -143,9 +173,9 @@ watch(
 </script>
 
 <template>
-  <div class="col-span-full mb-3 flex flex-col gap-3 rounded-lg border border-neutral-300 bg-neutral-50 p-3 dark:border-gray-900 dark:bg-gray-500">
+  <div class="col-span-full mb-3 flex flex-col gap-3 rounded-lg border p-3" :class="containerClass">
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <div class="text-sm font-semibold text-gray-500 dark:text-white">
+      <div class="text-sm font-semibold" :class="isMobile ? 'text-white' : 'text-gray-500 dark:text-white'">
         {{ $t('WhatsApp Template') }}
       </div>
       <button
@@ -170,18 +200,44 @@ watch(
 
     <div
       v-if="state.loading"
-      class="text-sm text-gray-100 dark:text-neutral-400"
+      class="text-sm"
+      :class="isMobile ? 'text-white' : 'text-gray-100 dark:text-neutral-400'"
     >
       {{ $t('Loading templates…') }}
     </div>
 
     <template v-else>
       <div class="grid gap-3 md:grid-cols-2">
-        <label class="flex flex-col gap-1 text-sm">
-          <span class="font-medium text-gray-500 dark:text-white">{{ $t('Template') }}</span>
+        <label class="relative flex flex-col gap-1 text-sm">
+          <span class="font-medium" :class="isMobile ? 'text-white' : 'text-gray-500 dark:text-white'">{{ $t('Template') }}</span>
+          <template v-if="isMobile">
+            <button
+              type="button"
+              class="w-full text-left"
+              :class="fieldClass"
+              @click="showTemplatePicker = !showTemplatePicker"
+            >
+              {{ selectedTemplateName || $t('Select a template') }}
+            </button>
+            <div
+              v-if="showTemplatePicker"
+              class="absolute top-full z-50 mt-1 max-h-48 w-full overflow-y-auto rounded border border-gray-900 bg-gray-500 shadow-lg"
+            >
+              <button
+                v-for="option in templateOptions"
+                :key="option.value"
+                type="button"
+                class="block w-full px-3 py-3 text-left text-base text-white hover:bg-gray-400"
+                @click="selectTemplateOption(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+          </template>
           <select
+            v-else
             v-model="selectedTemplateName"
-            class="rounded border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-gray-900 dark:bg-gray-500 dark:text-white"
+            :class="fieldClass"
           >
             <option value="">
               {{ $t('Select a template') }}
@@ -196,11 +252,37 @@ watch(
           </select>
         </label>
 
-        <label class="flex flex-col gap-1 text-sm">
-          <span class="font-medium text-gray-500 dark:text-white">{{ $t('Language') }}</span>
+        <label class="relative flex flex-col gap-1 text-sm">
+          <span class="font-medium" :class="isMobile ? 'text-white' : 'text-gray-500 dark:text-white'">{{ $t('Language') }}</span>
+          <template v-if="isMobile">
+            <button
+              type="button"
+              class="w-full text-left"
+              :class="fieldClass"
+              :disabled="!selectedTemplateName"
+              @click="showLanguagePicker = !showLanguagePicker"
+            >
+              {{ selectedLanguage || $t('Select a language') }}
+            </button>
+            <div
+              v-if="showLanguagePicker"
+              class="absolute top-full z-50 mt-1 max-h-48 w-full overflow-y-auto rounded border border-gray-900 bg-gray-500 shadow-lg"
+            >
+              <button
+                v-for="option in languageOptions"
+                :key="option.value"
+                type="button"
+                class="block w-full px-3 py-3 text-left text-base text-white hover:bg-gray-400"
+                @click="selectLanguageOption(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+          </template>
           <select
+            v-else
             v-model="selectedLanguage"
-            class="rounded border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-gray-900 dark:bg-gray-900 dark:text-white"
+            :class="fieldClass"
             :disabled="!selectedTemplateName"
           >
             <option value="">
@@ -221,7 +303,7 @@ watch(
         v-if="selectedTemplate?.variables?.header?.length"
         class="flex flex-col gap-2"
       >
-        <div class="text-sm font-medium text-gray-500 dark:text-white">
+        <div class="text-sm font-medium" :class="isMobile ? 'text-white' : 'text-gray-500 dark:text-white'">
           {{ $t('Header variables') }}
         </div>
         <label
@@ -232,7 +314,7 @@ watch(
           <span>{{ variable.label }}</span>
           <input
             v-model="state.variableValues.header[index]"
-            class="rounded border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-gray-900 dark:bg-gray-500 dark:text-white"
+            :class="fieldClass"
             type="text"
           />
         </label>
@@ -242,7 +324,7 @@ watch(
         v-if="selectedTemplate?.variables?.body?.length"
         class="flex flex-col gap-2"
       >
-        <div class="text-sm font-medium text-gray-500 dark:text-white">
+        <div class="text-sm font-medium" :class="isMobile ? 'text-white' : 'text-gray-500 dark:text-white'">
           {{ $t('Body variables') }}
         </div>
         <label
@@ -253,7 +335,7 @@ watch(
           <span>{{ variable.label }}</span>
           <input
             v-model="state.variableValues.body[index]"
-            class="rounded border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-gray-900 dark:bg-gray-900 dark:text-white"
+            :class="fieldClass"
             type="text"
           />
         </label>
@@ -261,7 +343,8 @@ watch(
 
       <div
         v-if="preview"
-        class="rounded border border-dashed border-neutral-300 px-3 py-2 text-sm text-gray-500 dark:border-gray-900 dark:text-white"
+        class="rounded border border-dashed px-3 py-2 text-sm"
+        :class="isMobile ? 'border-gray-900 text-white' : 'border-neutral-300 text-gray-500 dark:border-gray-900 dark:text-white'"
       >
         <div class="mb-1 font-medium">{{ $t('Preview') }}</div>
         <div>{{ preview }}</div>

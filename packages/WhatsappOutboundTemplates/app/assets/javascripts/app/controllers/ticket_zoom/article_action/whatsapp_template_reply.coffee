@@ -47,7 +47,7 @@ class WhatsappTemplateReply
     actions.push {
       name: __('Send template')
       type: 'whatsappTemplateReply'
-      icon: 'file-text'
+      icon: 'document'
       href: '#'
     }
 
@@ -79,7 +79,7 @@ class WhatsappTemplateReply
 
     articleTypes.push {
       name:       WHATSAPP_TEMPLATE_ARTICLE_TYPE_NAME
-      icon:       'file-text'
+      icon:       'document'
       attributes: []
       internal:   false
       features:   []
