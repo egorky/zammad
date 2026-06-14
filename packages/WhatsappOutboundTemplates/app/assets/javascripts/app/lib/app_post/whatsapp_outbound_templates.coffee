@@ -1,6 +1,7 @@
 # Copyright (C) 2012-2026 Zammad Foundation, https://zammad-foundation.org/
 
 WHATSAPP_TEMPLATE_CREATE_TYPE = 'whatsapp-template-out'
+WHATSAPP_TEMPLATE_ARTICLE_TYPE = 'whatsapp template message'
 
 whatsappTemplateApiPath = ->
   App.Config.get('api_path') || '/api/v1'
@@ -617,6 +618,192 @@ if App.TicketCreate?
 
     variableValues = @collectWhatsappTemplateVariableValues()
 
+    preview = buildWhatsappTemplatePreviewText(template, variableValues)
+
+    componentsJson = []
+    if variableValues.body.some((value) -> !_.isEmpty(value))
+      componentsJson.push({
+        type: 'body'
+        parameters: _.compact(variableValues.body).map((text) -> { type: 'text', text })
+      })
+
+    if variableValues.header.some((value) -> !_.isEmpty(value))
+      componentsJson.push({
+        type: 'header'
+        parameters: _.compact(variableValues.header).map((text) -> { type: 'text', text })
+      })
+
+    for buttonValues, buttonIndex in variableValues.buttons
+      continue if !buttonValues?.some((value) -> !_.isEmpty(value))
+      componentsJson.push({
+        type: 'button'
+        sub_type: 'url'
+        index: "#{buttonIndex}"
+        parameters: _.compact(buttonValues).map((text) -> { type: 'text', text })
+      })
+
+    {
+      preview: preview
+      preferences: {
+        template_id: template.id
+        name: template.name
+        language: template.language
+        variable_values: variableValues
+        components_json: componentsJson
+        channel_id: template.channel_id
+      }
+    }
+
+# Agent ticket zoom: send WhatsApp templates in open conversations.
+if App.TicketZoomArticleNew?
+  sharedWhatsappTemplateMethods = [
+    'collectWhatsappTemplateVariableValues'
+    'updateWhatsappTemplatePreview'
+    'renderWhatsappTemplateVariables'
+  ]
+
+  for methodName in sharedWhatsappTemplateMethods
+    App.TicketZoomArticleNew.prototype[methodName] = App.TicketCreate.prototype[methodName]
+
+  _articleNewSetArticleTypePre = App.TicketZoomArticleNew.prototype.setArticleTypePre
+  App.TicketZoomArticleNew.prototype.setArticleTypePre = (type, signaturePosition = 'bottom') ->
+    previousType = @type
+    _articleNewSetArticleTypePre.apply(this, arguments)
+
+    if previousType is WHATSAPP_TEMPLATE_ARTICLE_TYPE && type isnt WHATSAPP_TEMPLATE_ARTICLE_TYPE
+      @toggleWhatsappTemplateZoomComposer(false)
+
+    if type is WHATSAPP_TEMPLATE_ARTICLE_TYPE
+      @toggleWhatsappTemplateZoomComposer(true)
+
+  _articleNewValidate = App.TicketZoomArticleNew.prototype.validate
+  App.TicketZoomArticleNew.prototype.validate = ->
+    if @type is WHATSAPP_TEMPLATE_ARTICLE_TYPE
+      templateId = @$('.js-whatsapp-template-select').val()
+      if !templateId
+        App.Event.trigger 'notify',
+          type: 'error'
+          msg:  App.i18n.translateContent(__('Please select a WhatsApp template.'))
+        return false
+
+      templateData = @whatsappTemplateFormData()
+      if templateData
+        @$('.js-textarea [data-name=body]').text(templateData.preview)
+
+    _articleNewValidate.apply(this, arguments)
+
+  _articleNewParams = App.TicketZoomArticleNew.prototype.params
+  App.TicketZoomArticleNew.prototype.params = ->
+    if @type is WHATSAPP_TEMPLATE_ARTICLE_TYPE
+      templateData = @whatsappTemplateFormData()
+      if templateData
+        @$('.js-textarea [data-name=body]').text(templateData.preview)
+
+    _articleNewParams.apply(this, arguments)
+
+  App.TicketZoomArticleNew.prototype.whatsappTemplateChannelId = ->
+    App.Ticket.fullLocal(@ticket_id)?.preferences?.channel_id
+
+  App.TicketZoomArticleNew.prototype.applyWhatsappTemplateZoomLayout = (enabled) ->
+    $textBubble = @$('.textBubble')
+    $textarea = @$('.js-textarea')
+    $attachments = @$('.article-attachment, .attachments, .attachmentPlaceholder, .js-textSizeLimit')
+
+    if enabled
+      $textarea.addClass('hide').css('display', 'none')
+      $attachments.addClass('hide').css('display', 'none')
+      @$('.js-textModule, .js-textTools').addClass('hide').css('display', 'none')
+    else
+      $textarea.removeClass('hide').css('display', '')
+      $attachments.removeClass('hide').css('display', '')
+      @$('.js-textModule, .js-textTools').removeClass('hide').css('display', '')
+
+  App.TicketZoomArticleNew.prototype.toggleWhatsappTemplateZoomComposer = (enabled) ->
+    $container = @$('.js-whatsapp-template-composer')
+
+    if !enabled
+      $container.remove()
+      @applyWhatsappTemplateZoomLayout(false)
+      return
+
+    @applyWhatsappTemplateZoomLayout(true)
+
+    if !$container.length
+      $target = @$('.textBubble')
+      $target.prepend(
+        """
+        <div class="form-group js-whatsapp-template-composer">
+          <div class="form-group">
+            <div class="formGroup-label"><label>#{App.i18n.translatePlain(__('WhatsApp Template'))}</label></div>
+            <select class="form-control js-whatsapp-template-select">
+              <option value="">#{App.i18n.translatePlain(__('Select template'))}</option>
+            </select>
+          </div>
+          <div class="form-group js-whatsapp-template-preview hide">
+            <div class="formGroup-label"><label>#{App.i18n.translatePlain(__('Template preview'))}</label></div>
+            <div class="well well--no-border js-whatsapp-template-preview-content"></div>
+          </div>
+          <div class="js-whatsapp-template-variables u-mt"></div>
+          <p class="help-block js-whatsapp-template-hint"></p>
+        </div>
+        """
+      )
+
+      @$('.js-whatsapp-template-select').off('change.whatsappTemplateZoom').on 'change.whatsappTemplateZoom', (e) =>
+        @renderWhatsappTemplateVariables($(e.currentTarget).val())
+
+      @$('.js-whatsapp-template-variables').off('input.whatsappTemplateZoom').on 'input.whatsappTemplateZoom', '.js-whatsapp-template-variable', =>
+        @updateWhatsappTemplatePreview()
+
+    @loadWhatsappTemplatesForZoom()
+
+  App.TicketZoomArticleNew.prototype.loadWhatsappTemplatesForZoom = ->
+    channelId = @whatsappTemplateChannelId()
+    $select = @$('.js-whatsapp-template-select')
+    $hint = @$('.js-whatsapp-template-hint')
+
+    @whatsappTemplates = []
+    $select.find('option:not(:first)').remove()
+    $hint.text('')
+    @$('.js-whatsapp-template-variables').empty()
+    @updateWhatsappTemplatePreview()
+
+    return if !channelId
+
+    @ajax(
+      id: 'whatsapp_templates_zoom_list'
+      type: 'GET'
+      url: "#{@apiPath}/whatsapp_message_templates?channel_id=#{channelId}&status=APPROVED"
+      success: (data) =>
+        @whatsappTemplates = data || []
+        for template in @whatsappTemplates
+          label = "#{template.name} (#{template.language})"
+          $select.append("<option value=\"#{template.id}\">#{App.Utils.htmlEscape(label)}</option>")
+
+        return if @whatsappTemplates.length
+
+        $hint.text App.i18n.translatePlain(__('No templates found for this WhatsApp account. Click Sync Templates in Admin → Channels → WhatsApp first.'))
+      error: (xhr) =>
+        response = {}
+        try
+          response = JSON.parse(xhr.responseText)
+        catch error
+          response = {}
+        $hint.text App.i18n.translateContent(response.error_human || response.error || __('Unable to load WhatsApp templates.'))
+    )
+
+  App.TicketZoomArticleNew.prototype.whatsappTemplateFormData = ->
+    templateId = @$('.js-whatsapp-template-select').val()
+    return if !templateId
+
+    template = _.find(@whatsappTemplates || [], (item) -> "#{item.id}" is "#{templateId}")
+    return if !template
+
+    channelId = @whatsappTemplateChannelId()
+    if channelId
+      template.channel_id = parseInt(channelId, 10)
+
+    variableValues = @collectWhatsappTemplateVariableValues()
     preview = buildWhatsappTemplatePreviewText(template, variableValues)
 
     componentsJson = []
