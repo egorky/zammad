@@ -21,7 +21,7 @@ Zammad add-on package that extends WhatsApp Business API support with **outbound
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.20.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.21.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -32,7 +32,7 @@ zammad restart
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.20.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.21.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -66,10 +66,11 @@ Restart the application afterwards.
 ### Reply on existing WhatsApp ticket
 
 1. Open a WhatsApp ticket
-2. Click **Send template** on any article, or choose **WhatsApp Template** in the article type selector
-3. Select template, fill variables, and submit
+2. On a **customer WhatsApp message** within the 24h window, use **reply** for free text or **Send template** for an approved template
+3. Outside the 24h window, only **Send template** is available (via the article action or **WhatsApp Template** article type)
 
 | No Send template button on open WhatsApp tickets | Upgrade to 1.0.20+ — legacy ticket zoom UI support for template reply |
+| Reply replaced by Send template within 24h window | Upgrade to 1.0.21+ — restores reply alongside Send template on customer messages |
 
 ## Troubleshooting
 
@@ -101,6 +102,7 @@ Restart the application afterwards.
 | Template not sent: `Can't find ticket.preferences['channel_id']` | Upgrade to 1.0.18+ — legacy REST ticket create now sets WhatsApp ticket preferences |
 | Title/Text fields reappear after changing group | Upgrade to 1.0.15+ — re-applies layout after core workflow |
 | New ticket created while WhatsApp conversation is open | Upgrade to 1.0.19+ — reuses open WhatsApp ticket via REST and sets `create_article_type` to `whatsapp message` |
+| Reply button replaced by Send template within 24h window | Upgrade to 1.0.21+ — reply and Send template shown together on customer WhatsApp messages |
 
 ## API
 

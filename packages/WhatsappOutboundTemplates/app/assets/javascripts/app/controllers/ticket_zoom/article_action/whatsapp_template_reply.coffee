@@ -10,16 +10,44 @@ class WhatsappTemplateReply
     articleTypeCreate = App.TicketArticleType.find(ticket.create_article_type_id)?.name
     articleTypeCreate is 'whatsapp message'
 
+  @isCustomerWhatsappMessage: (article) ->
+    return false if !article?.type?.name
+    return false if article.type.name isnt 'whatsapp message'
+
+    sender = App.TicketArticleSender.find(article.sender_id)
+    sender?.name is 'Customer'
+
+  @canUseWhatsapp: (ticket) ->
+    alert = new App.TicketZoomChannel(ticket).channelAlert()
+    alert?.type && alert.type != 'danger'
+
+  @ensureWhatsappReplyAction: (actions, ticket, article) ->
+    return actions if !@isCustomerWhatsappMessage(article)
+    return actions if !@canUseWhatsapp(ticket)
+    return actions if _.find(actions, (entry) -> entry.type is 'whatsappReply')
+
+    actions.push {
+      name: __('reply')
+      type: 'whatsappReply'
+      icon: 'reply'
+      href: '#'
+    }
+
+    actions
+
   @action: (actions, ticket, article, ui) ->
     return actions if !ticket.editable()
     return actions if ticket.currentView() is 'customer'
     return actions if !@isWhatsappTicket(ticket)
+
+    actions = @ensureWhatsappReplyAction(actions, ticket, article)
+
     return actions if _.find(actions, (entry) -> entry.type is 'whatsappTemplateReply')
 
     actions.push {
       name: __('Send template')
       type: 'whatsappTemplateReply'
-      icon: 'whatsapp'
+      icon: 'file-text'
       href: '#'
     }
 
@@ -51,7 +79,7 @@ class WhatsappTemplateReply
 
     articleTypes.push {
       name:       WHATSAPP_TEMPLATE_ARTICLE_TYPE_NAME
-      icon:       'whatsapp'
+      icon:       'file-text'
       attributes: []
       internal:   false
       features:   []
@@ -72,4 +100,4 @@ class WhatsappTemplateReply
 
     params
 
-App.Config.set('295-WhatsappTemplateReply', WhatsappTemplateReply, 'TicketZoomArticleAction')
+App.Config.set('310-WhatsappTemplateReply', WhatsappTemplateReply, 'TicketZoomArticleAction')

@@ -71,8 +71,9 @@ const unmountComposer = (form?: FormRef | { formId?: string }) => {
   setActiveWhatsappTemplateForm(undefined)
 }
 
+
 const actionPlugin: TicketArticleActionPlugin = {
-  order: 250,
+  order: 310,
 
   addActions(ticket) {
     if (!isWhatsappTicket(ticket)) return []
@@ -81,7 +82,7 @@ const actionPlugin: TicketArticleActionPlugin = {
       apps: ['mobile', 'desktop'],
       label: __('Send template'),
       name: ARTICLE_TYPE,
-      icon: 'whatsapp',
+      icon: 'file-text',
       alwaysVisible: true,
       view: {
         agent: ['change'],
@@ -102,7 +103,7 @@ const actionPlugin: TicketArticleActionPlugin = {
       value: ARTICLE_TYPE,
       label: __('WhatsApp Template'),
       buttonLabel: __('Send template'),
-      icon: 'whatsapp',
+      icon: 'file-text',
       view: {
         agent: ['change'],
       },
