@@ -12,6 +12,17 @@ class CommunicateWhatsappTemplateJob < ApplicationJob
 
   # Nested deliver class avoids Zeitwerk autoload issues with package service files.
   class Deliver < Service::Ticket::Article::Type::BaseDeliver
+    def initialize(article_id:)
+      article = Ticket::Article.find(article_id)
+      ticket = Ticket.lookup(id: article.ticket_id)
+
+      if !ticket.preferences['channel_id'] && WhatsappOutboundTemplates::Preferences.whatsapp_template_article_record?(article)
+        WhatsappOutboundTemplates::Preferences.apply_to_ticket!(ticket, article: article)
+      end
+
+      super
+    end
+
     private
 
     def channel_adapter

@@ -21,7 +21,7 @@ Zammad add-on package that extends WhatsApp Business API support with **outbound
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.17.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.18.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -32,7 +32,7 @@ zammad restart
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.17.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.18.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -96,15 +96,8 @@ Restart the application afterwards.
 | Sync fails with `wrong number of arguments (given 2, expected 1)` | Upgrade to 1.0.13+ — fixes `__()` interpolation in sync success message |
 | Title/Text fields shown on WhatsApp template ticket create | Upgrade to 1.0.14+ — hides title/body, shows template preview and variable fields only |
 | View synced templates in WhatsApp admin | Upgrade to 1.0.14+ — **View Templates** button per account |
-| Template not sent / job fails with `undefined method 'execute' for Deliver` | Upgrade to 1.0.17+ — delivery runs via nested `CommunicateWhatsappTemplateJob::Deliver` (no package service autoload) |
-
-Verify after install:
-
-```bash
-zammad run rails r "p CommunicateWhatsappTemplateJob::Deliver.ancestors.include?(Service::Ticket::Article::Type::BaseDeliver)"
-```
-
-Must print `true`.
+| Template not sent / job fails with `undefined method 'execute' for Deliver` | Upgrade to 1.0.17+ — delivery runs via nested `CommunicateWhatsappTemplateJob::Deliver` |
+| Template not sent: `Can't find ticket.preferences['channel_id']` | Upgrade to 1.0.18+ — legacy REST ticket create now sets WhatsApp ticket preferences |
 | Title/Text fields reappear after changing group | Upgrade to 1.0.15+ — re-applies layout after core workflow |
 | New ticket created while WhatsApp conversation is open | Upgrade to 1.0.15+ — reuses open WhatsApp ticket for same customer/channel |
 

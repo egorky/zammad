@@ -40,6 +40,36 @@ RSpec.describe CommunicateWhatsappTemplateJob::Deliver do
     expect(described_class.ancestors).to include(Service::Ticket::Article::Type::BaseDeliver)
     expect(described_class.new(article_id: article.id)).to respond_to(:execute)
   end
+
+  context 'when the ticket was created without channel preferences' do
+    let(:channel) { create(:whatsapp_channel) }
+    let(:customer) { create(:user, mobile: '+4917012345678') }
+    let(:ticket) { create(:ticket, group: channel.group, customer: customer, preferences: {}) }
+    let(:article) do
+      create(
+        :ticket_article,
+        ticket:      ticket,
+        type_name:   'whatsapp template message',
+        sender_name: 'Agent',
+        preferences: {
+          whatsapp_template: {
+            name:       'hello_world',
+            language:   'en_US',
+            channel_id: channel.id,
+          },
+        },
+      )
+    end
+
+    before do
+      article
+      allow_any_instance_of(Whatsapp::Outgoing::Message::Template).to receive(:deliver).and_return({ id: message_id })
+    end
+
+    it 'backfills ticket preferences before delivery' do
+      expect(service_result.ticket.reload.preferences).to include('channel_id' => channel.id)
+    end
+  end
 end
 
 RSpec.describe CommunicateWhatsappTemplateJob do

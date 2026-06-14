@@ -2,13 +2,11 @@
 
 module WhatsappOutboundTemplates
   module TicketCreate
-    WHATSAPP_TEMPLATE_ARTICLE_TYPE = 'whatsapp template message'.freeze
-
     def execute
-      apply_whatsapp_template_ticket_data!(ticket_data)
+      apply_whatsapp_template_ticket_data!
 
       if whatsapp_template_create?
-        existing_ticket = find_open_whatsapp_ticket(ticket_data)
+        existing_ticket = find_open_whatsapp_ticket
         return append_template_to_existing_ticket!(existing_ticket) if existing_ticket
       end
 
@@ -18,15 +16,14 @@ module WhatsappOutboundTemplates
     private
 
     def whatsapp_template_create?
-      article = ticket_data[:article]
-      article.present? && article[:type] == WHATSAPP_TEMPLATE_ARTICLE_TYPE
+      WhatsappOutboundTemplates::Preferences.whatsapp_template_article?(ticket_data[:article])
     end
 
-    def find_open_whatsapp_ticket(data)
-      customer = resolve_customer(data)
+    def find_open_whatsapp_ticket
+      customer = resolve_customer(ticket_data)
       return if customer.blank?
 
-      channel_id = data.dig(:preferences, :channel_id)
+      channel_id = ticket_data.dig(:preferences, :channel_id) || ticket_data.dig(:preferences, 'channel_id')
       return if channel_id.blank?
 
       state_ids = Ticket::State.by_category_ids(:resolved)
@@ -69,27 +66,29 @@ module WhatsappOutboundTemplates
       ticket.update!(state_id: follow_up_state.id)
     end
 
-    def apply_whatsapp_template_ticket_data!(data)
-      article = data[:article]
-      return if article.blank?
-      return if article[:type] != WHATSAPP_TEMPLATE_ARTICLE_TYPE
+    def apply_whatsapp_template_ticket_data!
+      article = ticket_data[:article]
+      return if !WhatsappOutboundTemplates::Preferences.whatsapp_template_article?(article)
 
-      group = data[:group]
+      group = ticket_data[:group]
       raise Exceptions::UnprocessableContent, __('Group is required for WhatsApp template tickets.') if group.blank?
 
-      channel = resolve_whatsapp_channel(data, group)
-      if channel.blank?
-        raise Exceptions::UnprocessableContent, __('No active WhatsApp channel found for the selected group.')
-      end
-
-      customer = resolve_customer(data)
-      phone_number = extract_phone_number(customer)
+      customer = resolve_customer(ticket_data)
+      phone_number = WhatsappOutboundTemplates::Preferences.extract_phone_number(customer)
       if phone_number.blank?
         raise Exceptions::UnprocessableContent, __('Customer mobile phone number is required for WhatsApp template tickets.')
       end
 
-      data[:preferences] ||= {}
-      data[:preferences].merge!(
+      channel = WhatsappOutboundTemplates::Preferences.resolve_channel(
+        ticket: Ticket.new(group: group),
+        article: article,
+      )
+      if channel.blank?
+        raise Exceptions::UnprocessableContent, __('No active WhatsApp channel found for the selected group.')
+      end
+
+      ticket_data[:preferences] ||= {}
+      ticket_data[:preferences].merge!(
         channel_id:   channel.id,
         channel_area: channel.area,
         whatsapp:     {
@@ -101,18 +100,6 @@ module WhatsappOutboundTemplates
       )
     end
 
-    def resolve_whatsapp_channel(data, group)
-      channel_id = data.dig(:article, :preferences, :whatsapp_template, :channel_id)
-      channel_id ||= data.dig(:article, :preferences, 'whatsapp_template', 'channel_id')
-
-      if channel_id.present?
-        channel = Channel.in_area('WhatsApp::Business').find_by(id: channel_id, active: true)
-        return channel if channel.present?
-      end
-
-      Channel.in_area('WhatsApp::Business').find_by(group_id: group.id, active: true)
-    end
-
     def resolve_customer(data)
       customer = data[:customer]
       return customer if customer.is_a?(::User)
@@ -121,15 +108,6 @@ module WhatsappOutboundTemplates
       return ::User.find_by(id: customer_id) if customer_id.present?
 
       nil
-    end
-
-    def extract_phone_number(customer)
-      return if customer.blank?
-
-      number = customer.mobile.presence || customer.phone.presence
-      return if number.blank?
-
-      number.to_s.gsub(/\D/, '')
     end
   end
 end
