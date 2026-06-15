@@ -9,7 +9,12 @@ import { useCheckBodyAttachmentReference } from '#shared/composables/form/useChe
 import { useObjectAttributeFormData } from '#shared/entities/object-attributes/composables/useObjectAttributeFormData.ts'
 import { useObjectAttributes } from '#shared/entities/object-attributes/composables/useObjectAttributes.ts'
 import { ticketCreateArticleType } from '#shared/entities/ticket/composables/useTicketCreateArticleType.ts'
-import { applyWhatsappTemplateToTicketCreateInput } from '#shared/entities/ticket/composables/whatsappOutboundTemplatesTicketCreate.ts'
+import { applyWhatsappTemplateToTicketCreateInput, isWhatsappTemplateTicketCreate } from '#shared/entities/ticket/composables/whatsappOutboundTemplatesTicketCreate.ts'
+import {
+  getActiveWhatsappTemplateFormId,
+  getSelectedTemplate,
+  getWhatsappTemplateFormState,
+} from '#shared/composables/useWhatsappTemplateFormState.ts'
 import { useTicketCreateMutation } from '#shared/entities/ticket/graphql/mutations/create.api.ts'
 import UserError from '#shared/errors/UserError.ts'
 import { EnumObjectManagerObjects, type TicketCreateInput } from '#shared/graphql/types.ts'
@@ -85,6 +90,21 @@ export const useTicketCreate = (
   }
 
   const createTicket = async (formData: FormSubmitData<TicketFormData>) => {
+    if (isWhatsappTemplateTicketCreate(formData.articleSenderType as string)) {
+      const formId = getActiveWhatsappTemplateFormId() || form.value?.formId
+      const template = formId ? getSelectedTemplate(getWhatsappTemplateFormState(formId)) : undefined
+
+      if (!template) {
+        notify({
+          id: 'ticket-create-whatsapp-template-missing',
+          type: NotificationTypes.Error,
+          message: __('Please select a WhatsApp template.'),
+        })
+
+        return false
+      }
+    }
+
     if (
       missingBodyAttachmentReference(formData.body, formData.attachments) &&
       (await bodyAttachmentReferenceConfirmation())
