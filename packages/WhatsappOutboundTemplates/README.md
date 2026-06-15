@@ -21,7 +21,7 @@ Zammad add-on package that extends WhatsApp Business API support with **outbound
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.25.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.26.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -32,7 +32,7 @@ zammad restart
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.25.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.26.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -114,6 +114,8 @@ Restart the application afterwards.
 | Template article saved but never delivered on existing ticket (PUT update) | Upgrade to 1.0.23+ — server fixes type/enqueue; 1.0.24+ also sends `type_id` on ticket zoom submit |
 | View Templates opens plain text modal | Upgrade to 1.0.25+ — structured template gallery with Meta-style preview and back navigation |
 | No sent/delivered/read indicators on WhatsApp articles | Upgrade to 1.0.25+ — delivery status at bottom of message bubbles; failure alerts when delivery fails |
+| Vue desktop UI broken after 1.0.25 (`desktop.ts` not in manifest) | Upgrade to 1.0.26+ — removes core `ArticleBubble.vue` override that broke Vite build; run `post_install` |
+| Legacy template viewer or delivery checks not visible after upgrade | Upgrade to 1.0.26+ and run `zammad:package:post_install` (rebuilds CoffeeScript + Vite assets) |
 
 ## API
 

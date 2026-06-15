@@ -62,6 +62,131 @@ formatWhatsappTemplateVariablesSummary = (variables) ->
 
   lines.join('\n')
 
+WHATSAPP_OUTBOUND_ARTICLE_TYPES = ['whatsapp message', 'whatsapp template message']
+
+whatsappTemplateStatusClass = (status) ->
+  normalized = "#{status}".toUpperCase()
+  switch normalized
+    when 'APPROVED' then 'success'
+    when 'PENDING', 'IN_APPEAL' then 'warning'
+    when 'REJECTED', 'PAUSED', 'DISABLED' then 'danger'
+    else 'muted'
+
+buildWhatsappTemplateDisplayParts = (template) ->
+  parts = []
+
+  for component in template?.components || []
+    type = whatsappTemplateComponentType(component)
+    text = whatsappTemplateComponentText(component)
+    format = component?.format || component?['format']
+    buttons = component?.buttons || component?['buttons']
+
+    if type is 'HEADER'
+      parts.push({ type: 'HEADER', text, format })
+    else if type is 'BODY' && text
+      parts.push({ type: 'BODY', text })
+    else if type is 'FOOTER' && text
+      parts.push({ type: 'FOOTER', text })
+    else if type is 'BUTTONS' && !_.isEmpty(buttons)
+      parts.push({ type: 'BUTTONS', buttons })
+
+  parts
+
+renderWhatsappTemplatePreviewFragment = (template) ->
+  parts = buildWhatsappTemplateDisplayParts(template)
+  return '' if _.isEmpty(parts)
+
+  App.view('whatsapp/template_preview_fragment')(
+    parts: parts
+  )
+
+whatsappTemplateChannelLabel = (channel) ->
+  return __('WhatsApp') if !channel
+
+  account = channel.options?.name || __('WhatsApp')
+  phone = channel.options?.phone_number || '-'
+  "#{account} (#{phone})"
+
+whatsappTemplateAdminHelpers = ->
+  statusClass: whatsappTemplateStatusClass
+  preview: (template) -> renderWhatsappTemplatePreviewFragment(template)
+  variablesSummary: (variables) -> formatWhatsappTemplateVariablesSummary(variables)
+
+findWhatsappAdminContainer = ($context) ->
+  $content = $context.closest('.content')
+  $container = $content.find('[data-whatsapp-channel-controller]').first()
+  if !$container.length
+    $container = $content.children().filter(':has(.page-header)').first()
+  $container = $content if !$container.length
+  $container
+
+showWhatsappTemplatesSection = ($context, channelId, templates) ->
+  channel = App.Channel.find(channelId)
+  helpers = whatsappTemplateAdminHelpers()
+  $content = $context.closest('.content')
+
+  $content.data('whatsappTemplates', templates || [])
+  $content.data('whatsappTemplatesChannelId', channelId)
+
+  findWhatsappAdminContainer($context).html App.view('whatsapp/templates_list')(
+    channelLabel: whatsappTemplateChannelLabel(channel)
+    templates: templates || []
+    statusClass: helpers.statusClass
+    preview: helpers.preview
+  )
+
+showWhatsappTemplateDetailSection = ($context, template) ->
+  $content = $context.closest('.content')
+  channelId = $content.data('whatsappTemplatesChannelId')
+  channel = App.Channel.find(channelId)
+  helpers = whatsappTemplateAdminHelpers()
+
+  findWhatsappAdminContainer($context).html App.view('whatsapp/template_detail')(
+    template: template
+    channelLabel: whatsappTemplateChannelLabel(channel)
+    statusClass: helpers.statusClass
+    preview: helpers.preview
+    variablesSummary: helpers.variablesSummary
+  )
+
+buildWhatsappArticleDeliveryStatus = (article) ->
+  return { show: false } if !article
+  return { show: false } if article.sender?.name isnt 'Agent'
+  return { show: false } if WHATSAPP_OUTBOUND_ARTICLE_TYPES.indexOf(article.type?.name) is -1
+
+  preferences = article.preferences || {}
+  whatsapp = preferences.whatsapp || {}
+
+  if preferences.delivery_status is 'fail' || whatsapp.delivery_status is 'fail'
+    return {
+      show: true
+      failed: true
+      message: preferences.delivery_status_message || whatsapp.delivery_status_message || ''
+    }
+
+  if whatsapp.timestamp_read
+    return { show: true, read: true, label: __('Read') }
+  if whatsapp.timestamp_delivered
+    return { show: true, delivered: true, label: __('Delivered') }
+  if whatsapp.timestamp_sent || whatsapp.message_id
+    return { show: true, sent: true, label: __('Sent') }
+
+  { show: false }
+
+appendWhatsappArticleDeliveryStatus = (controller, article) ->
+  status = buildWhatsappArticleDeliveryStatus(article)
+  return if !status.show
+
+  html = App.view('ticket_zoom/article_whatsapp_delivery_status')(
+    status: status
+  )
+
+  $bubble = controller.$('.textBubble').first()
+  return if !$bubble.length
+
+  $bubble.find('.article-whatsapp-delivery-status').remove()
+  $bubble.append(html)
+
 showWhatsappTemplateSyncResultModal = (data, $container) ->
   templates = data?.templates || []
   count = data?.count ? templates.length
@@ -126,7 +251,7 @@ $(document).off('click.whatsappTemplateSync').on 'click.whatsappTemplateSync', '
         msg:  App.i18n.translateContent(message)
   )
 
-# Fallback when ChannelWhatsapp controller events are not bound.
+# Global handler: works even when ChannelWhatsapp controller events are not bound.
 $(document).off('click.whatsappTemplateView').on 'click.whatsappTemplateView', '.js-view-whatsapp-templates', (e) ->
   e.preventDefault()
   e.stopPropagation()
@@ -134,63 +259,17 @@ $(document).off('click.whatsappTemplateView').on 'click.whatsappTemplateView', '
   $button = $(e.currentTarget)
   channelId = $button.attr('data-id')
   return if !channelId
-
-  controller = $button.closest('.content').find('[data-whatsapp-channel-controller]').data('whatsappChannelController')
-
-  if controller?.loadWhatsappTemplates
-    controller.loadWhatsappTemplates(channelId, $button)
-    return
-
   return if $button.hasClass('is-loading')
+
   $button.addClass('is-loading is-active')
 
   App.Ajax.request(
-    id: 'whatsapp_templates_view_fallback'
+    id: 'whatsapp_templates_view'
     type: 'GET'
     url: "#{whatsappTemplateApiPath()}/whatsapp_message_templates?channel_id=#{channelId}"
     success: (data) =>
       $button.removeClass('is-loading is-active')
-      $content = $button.closest('.content')
-      channel = App.Channel.find(channelId)
-      helpers =
-        statusClass: (status) ->
-          normalized = "#{status}".toUpperCase()
-          switch normalized
-            when 'APPROVED' then 'success'
-            when 'PENDING', 'IN_APPEAL' then 'warning'
-            when 'REJECTED', 'PAUSED', 'DISABLED' then 'danger'
-            else 'muted'
-        preview: (template) ->
-          parts = []
-          for component in template?.components || []
-            type = whatsappTemplateComponentType(component)
-            text = whatsappTemplateComponentText(component)
-            format = component?.format || component?['format']
-            buttons = component?.buttons || component?['buttons']
-            if type is 'HEADER'
-              parts.push({ type: 'HEADER', text, format })
-            else if type is 'BODY' && text
-              parts.push({ type: 'BODY', text })
-            else if type is 'FOOTER' && text
-              parts.push({ type: 'FOOTER', text })
-            else if type is 'BUTTONS' && !_.isEmpty(buttons)
-              parts.push({ type: 'BUTTONS', buttons })
-          return '' if _.isEmpty(parts)
-          App.view('whatsapp/template_preview_fragment')(parts: parts)
-
-      account = channel?.options?.name || __('WhatsApp')
-      phone = channel?.options?.phone_number || '-'
-      channelLabel = "#{account} (#{phone})"
-
-      $target = $content.find('.page-content').first()
-      $content.data('whatsappTemplates', data || [])
-      $content.data('whatsappTemplatesChannelId', channelId)
-      $target.html App.view('whatsapp/templates_list')(
-        channelLabel: channelLabel
-        templates: data || []
-        statusClass: helpers.statusClass
-        preview: helpers.preview
-      )
+      showWhatsappTemplatesSection($button, channelId, data || [])
     error: (xhr) =>
       $button.removeClass('is-loading is-active')
       response = {}
@@ -205,8 +284,110 @@ $(document).off('click.whatsappTemplateView').on 'click.whatsappTemplateView', '
         msg:  App.i18n.translateContent(message)
   )
 
+$(document).off('click.whatsappTemplateBack').on 'click.whatsappTemplateBack', '.js-back-whatsapp-accounts', (e) ->
+  e.preventDefault()
+
+  controller = $content.find('[data-whatsapp-channel-controller]').data('whatsappChannelController') if ($content = $(e.currentTarget).closest('.content')).length
+  if controller?.load
+    controller.load()
+    return
+
+  window.location.hash = '#channels/whatsapp'
+
+$(document).off('click.whatsappTemplateListBack').on 'click.whatsappTemplateListBack', '.js-back-whatsapp-templates', (e) ->
+  e.preventDefault()
+
+  $content = $(e.currentTarget).closest('.content')
+  channelId = $content.data('whatsappTemplatesChannelId')
+  templates = $content.data('whatsappTemplates')
+  return if !channelId
+
+  if !_.isEmpty(templates)
+    showWhatsappTemplatesSection($(e.currentTarget), channelId, templates)
+    return
+
+  controller = $content.find('[data-whatsapp-channel-controller]').data('whatsappChannelController')
+  controller?.backToWhatsappTemplates?(e)
+
+$(document).off('click.whatsappTemplateOpen').on 'click.whatsappTemplateOpen', '.js-whatsapp-template-card', (e) ->
+  e.preventDefault()
+
+  $content = $(e.currentTarget).closest('.content')
+  templates = $content.data('whatsappTemplates')
+  templateId = $(e.currentTarget).closest('.js-whatsapp-template-card').attr('data-id')
+  template = _.find(templates || [], (item) -> "#{item.id}" is "#{templateId}")
+  return if !template
+
+  controller = $content.find('[data-whatsapp-channel-controller]').data('whatsappChannelController')
+  if controller?.renderWhatsappTemplateDetail
+    controller.whatsappTemplates = templates
+    controller.renderWhatsappTemplateDetail(template)
+    return
+
+  showWhatsappTemplateDetailSection($(e.currentTarget), template)
+
 # Admin: ChannelWhatsapp load keeps default render; sync uses global document handler above.
 if typeof ChannelWhatsapp isnt 'undefined'
+  _channelWhatsappRender = ChannelWhatsapp.prototype.render
+  ChannelWhatsapp.prototype.render = (data) ->
+    @whatsappTemplatesChannelId = null
+    @whatsappTemplates = null
+    @whatsappTemplatesChannel = null
+    _channelWhatsappRender.apply(this, arguments)
+    @el.attr('data-whatsapp-channel-controller', 'true')
+    @el.data('whatsappChannelController', this)
+
+  ChannelWhatsapp.prototype.whatsappTemplateViewHelpers = ->
+    whatsappTemplateAdminHelpers()
+
+  ChannelWhatsapp.prototype.renderWhatsappTemplatesList = ->
+    showWhatsappTemplatesSection(@el, @whatsappTemplatesChannelId, @whatsappTemplates || [])
+
+  ChannelWhatsapp.prototype.renderWhatsappTemplateDetail = (template) ->
+    @whatsappTemplatesChannel = App.Channel.find(@whatsappTemplatesChannelId)
+    helpers = @whatsappTemplateViewHelpers()
+
+    @html App.view('whatsapp/template_detail')(
+      template: template
+      channelLabel: whatsappTemplateChannelLabel(@whatsappTemplatesChannel)
+      statusClass: helpers.statusClass
+      preview: helpers.preview
+      variablesSummary: helpers.variablesSummary
+    )
+    @el.data('whatsappChannelController', this)
+
+  ChannelWhatsapp.prototype.loadWhatsappTemplates = (channelId, $button) ->
+    $button?.addClass('is-loading is-active')
+
+    App.Ajax.request(
+      id: 'whatsapp_templates_view_controller'
+      type: 'GET'
+      url: "#{whatsappTemplateApiPath()}/whatsapp_message_templates?channel_id=#{channelId}"
+      success: (data) =>
+        $button?.removeClass('is-loading is-active')
+        @whatsappTemplatesChannelId = channelId
+        @whatsappTemplatesChannel = App.Channel.find(channelId)
+        @whatsappTemplates = data || []
+        @renderWhatsappTemplatesList()
+      error: (xhr) =>
+        $button?.removeClass('is-loading is-active')
+        response = {}
+        try
+          response = JSON.parse(xhr.responseText)
+        catch error
+          response = {}
+
+        message = response.error_human || response.error || __('Unable to load WhatsApp templates.')
+        App.Event.trigger 'notify',
+          type: 'error'
+          msg:  App.i18n.translateContent(message)
+    )
+
+  ChannelWhatsapp.prototype.backToWhatsappTemplates = (e) ->
+    e.preventDefault()
+    return @load() if !@whatsappTemplatesChannelId
+    @renderWhatsappTemplatesList()
+
   ChannelWhatsapp.prototype.load = =>
     @startLoading()
     @ajax(
@@ -878,3 +1059,25 @@ if App.TicketZoomArticleNew?
         channel_id: template.channel_id
       }
     }
+
+if App.ArticleViewItem?
+  _articleViewItemRender = App.ArticleViewItem.prototype.render
+  App.ArticleViewItem.prototype.render = (article) ->
+    if article.preferences?.whatsapp
+      icon = null
+      msg  = null
+      if article.preferences?.whatsapp?.timestamp_read
+        icon = 'double-checkmark'
+        msg  = __('read by the customer')
+      else if article.preferences?.whatsapp?.timestamp_delivered
+        icon = 'double-checkmark-outline'
+        msg  = __('delivered to the customer')
+      else if article.preferences?.whatsapp?.timestamp_sent || article.preferences?.whatsapp?.message_id
+        icon = 'checkmark-outline'
+        msg  = __('sent to the customer')
+
+      article['delivery_status_icon']    = icon
+      article['delivery_status_message'] = msg
+
+    _articleViewItemRender.apply(this, arguments)
+    appendWhatsappArticleDeliveryStatus(this, article)
