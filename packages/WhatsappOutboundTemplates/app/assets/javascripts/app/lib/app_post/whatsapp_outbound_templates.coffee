@@ -699,7 +699,26 @@ if App.TicketZoomArticleNew?
       if templateData
         @$('.js-textarea [data-name=body]').text(templateData.preview)
 
-    _articleNewParams.apply(this, arguments)
+    params = _articleNewParams.apply(this, arguments)
+
+    if @type is WHATSAPP_TEMPLATE_ARTICLE_TYPE or params.preferences?.whatsapp_template
+      articleType = App.TicketArticleType.findByAttribute('name', WHATSAPP_TEMPLATE_ARTICLE_TYPE)
+      sender = App.TicketArticleSender.findByAttribute('name', 'Agent')
+
+      if articleType
+        params.type_id = articleType.id
+        params.type = WHATSAPP_TEMPLATE_ARTICLE_TYPE
+      if sender
+        params.sender_id = sender.id
+
+      templateData = @whatsappTemplateFormData?()
+      if templateData
+        params.content_type = 'text/plain'
+        params.body = templateData.preview || params.body
+        params.preferences ||= {}
+        params.preferences.whatsapp_template = templateData.preferences
+
+    params
 
   App.TicketZoomArticleNew.prototype.whatsappTemplateChannelId = ->
     App.Ticket.fullLocal(@ticket_id)?.preferences?.channel_id
