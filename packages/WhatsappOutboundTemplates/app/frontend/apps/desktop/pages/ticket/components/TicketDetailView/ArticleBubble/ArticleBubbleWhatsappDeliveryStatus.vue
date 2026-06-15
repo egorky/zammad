@@ -3,7 +3,7 @@
 <script setup lang="ts">
 import { computed, toRef } from 'vue'
 
-import { useWhatsapp } from '#shared/entities/ticket/channel/composables/useWhatsapp.ts'
+import { useWhatsappArticleDelivery } from '#shared/composables/useWhatsappArticleDelivery.ts'
 import type { TicketArticle } from '#shared/entities/ticket/types.ts'
 import { EnumTicketArticleSenderName } from '#shared/graphql/types.ts'
 
@@ -13,7 +13,8 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const { articleDeliveryStatus, hasDeliveryStatus } = useWhatsapp(toRef(props, 'article'))
+const { articleDeliveryStatus, deliveryFailed, failureMessage, hasDeliveryStatus } =
+  useWhatsappArticleDelivery(toRef(props, 'article'))
 
 const WHATSAPP_ARTICLE_TYPES = ['whatsapp message', 'whatsapp template message']
 
@@ -24,29 +25,25 @@ const isWhatsappOutboundArticle = computed(() => {
   return isWhatsappType && props.article.sender?.name === EnumTicketArticleSenderName.Agent
 })
 
-const deliveryFailed = computed(() => {
-  const preferences = props.article.preferences
-
-  return (
-    preferences?.delivery_status === 'fail' || preferences?.whatsapp?.delivery_status === 'fail'
-  )
-})
-
-const failureMessage = computed(() => {
-  const preferences = props.article.preferences
-
-  return preferences?.delivery_status_message || preferences?.whatsapp?.delivery_status_message
-})
-
 const showStatus = computed(
-  () =>
-    isWhatsappOutboundArticle.value &&
-    (hasDeliveryStatus.value || deliveryFailed.value || Boolean(props.article.preferences?.whatsapp?.message_id)),
+  () => isWhatsappOutboundArticle.value && (hasDeliveryStatus.value || deliveryFailed.value),
 )
+
+const statusColorClass = computed(() => {
+  const state = articleDeliveryStatus.value?.state
+
+  if (state === 'read') return 'text-sky-500'
+  if (state === 'delivered' || state === 'sent') return 'text-neutral-500 dark:text-neutral-400'
+
+  return 'text-neutral-600 dark:text-neutral-300'
+})
 </script>
 
 <template>
-  <div v-if="showStatus" class="flex flex-col gap-1 border-t border-neutral-300 px-3 py-2 dark:border-neutral-500">
+  <div
+    v-if="showStatus"
+    class="flex flex-col gap-1 px-3 pb-2"
+  >
     <div
       v-if="deliveryFailed"
       class="flex items-start gap-2 rounded-md bg-red-100 px-2 py-1.5 text-xs text-red-900 dark:bg-red-900/30 dark:text-red-100"
@@ -58,12 +55,17 @@ const showStatus = computed(
         <div v-if="failureMessage">{{ failureMessage }}</div>
       </div>
     </div>
-    <div v-else class="flex items-center justify-end gap-1.5 text-xs text-neutral-600 dark:text-neutral-300">
+    <div
+      v-else
+      class="flex items-center justify-end gap-1.5 text-xs"
+      :class="statusColorClass"
+    >
       <CommonIcon
         v-if="articleDeliveryStatus?.icon"
         width="14"
         height="14"
         :name="articleDeliveryStatus.icon"
+        :class="statusColorClass"
       />
       <span>{{ articleDeliveryStatus?.message }}</span>
     </div>

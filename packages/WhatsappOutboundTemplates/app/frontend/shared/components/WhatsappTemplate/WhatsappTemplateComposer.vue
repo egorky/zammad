@@ -176,7 +176,7 @@ watch(
   <div class="col-span-full mb-3 flex flex-col gap-3 rounded-lg border p-3" :class="containerClass">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="text-sm font-semibold" :class="isMobile ? 'text-white' : 'text-gray-500 dark:text-white'">
-        {{ $t('WhatsApp Template') }}
+        {{ i18n.t('WhatsApp Template') }}
       </div>
       <button
         class="rounded px-3 py-1.5 text-sm font-semibold text-blue-800 hover:bg-blue-200 disabled:opacity-50 dark:text-blue-800"
@@ -185,7 +185,7 @@ watch(
         @click="handleSync"
       >
         {{
-          state.syncing ? $t('Syncing…') : $t('Sync templates')
+          state.syncing ? i18n.t('Syncing…') : i18n.t('Sync templates')
         }}
       </button>
     </div>
@@ -203,13 +203,13 @@ watch(
       class="text-sm"
       :class="isMobile ? 'text-white' : 'text-gray-100 dark:text-neutral-400'"
     >
-      {{ $t('Loading templates…') }}
+      {{ i18n.t('Loading templates…') }}
     </div>
 
     <template v-else>
       <div class="grid gap-3 md:grid-cols-2">
         <label class="relative flex flex-col gap-1 text-sm">
-          <span class="font-medium" :class="isMobile ? 'text-white' : 'text-gray-500 dark:text-white'">{{ $t('Template') }}</span>
+          <span class="font-medium" :class="isMobile ? 'text-white' : 'text-gray-500 dark:text-white'">{{ i18n.t('Template') }}</span>
           <template v-if="isMobile">
             <button
               type="button"
@@ -217,7 +217,7 @@ watch(
               :class="fieldClass"
               @click="showTemplatePicker = !showTemplatePicker"
             >
-              {{ selectedTemplateName || $t('Select a template') }}
+              {{ selectedTemplateName || i18n.t('Select a template') }}
             </button>
             <div
               v-if="showTemplatePicker"
@@ -240,7 +240,7 @@ watch(
             :class="fieldClass"
           >
             <option value="">
-              {{ $t('Select a template') }}
+              {{ i18n.t('Select a template') }}
             </option>
             <option
               v-for="option in templateOptions"
@@ -253,7 +253,7 @@ watch(
         </label>
 
         <label class="relative flex flex-col gap-1 text-sm">
-          <span class="font-medium" :class="isMobile ? 'text-white' : 'text-gray-500 dark:text-white'">{{ $t('Language') }}</span>
+          <span class="font-medium" :class="isMobile ? 'text-white' : 'text-gray-500 dark:text-white'">{{ i18n.t('Language') }}</span>
           <template v-if="isMobile">
             <button
               type="button"
@@ -262,7 +262,7 @@ watch(
               :disabled="!selectedTemplateName"
               @click="showLanguagePicker = !showLanguagePicker"
             >
-              {{ selectedLanguage || $t('Select a language') }}
+              {{ selectedLanguage || i18n.t('Select a language') }}
             </button>
             <div
               v-if="showLanguagePicker"
@@ -286,7 +286,7 @@ watch(
             :disabled="!selectedTemplateName"
           >
             <option value="">
-              {{ $t('Select a language') }}
+              {{ i18n.t('Select a language') }}
             </option>
             <option
               v-for="option in languageOptions"
@@ -304,7 +304,7 @@ watch(
         class="flex flex-col gap-2"
       >
         <div class="text-sm font-medium" :class="isMobile ? 'text-white' : 'text-gray-500 dark:text-white'">
-          {{ $t('Header variables') }}
+          {{ i18n.t('Header variables') }}
         </div>
         <label
           v-for="(variable, index) in selectedTemplate.variables.header"
@@ -325,7 +325,7 @@ watch(
         class="flex flex-col gap-2"
       >
         <div class="text-sm font-medium" :class="isMobile ? 'text-white' : 'text-gray-500 dark:text-white'">
-          {{ $t('Body variables') }}
+          {{ i18n.t('Body variables') }}
         </div>
         <label
           v-for="(variable, index) in selectedTemplate.variables.body"
@@ -346,7 +346,7 @@ watch(
         class="rounded border border-dashed px-3 py-2 text-sm"
         :class="isMobile ? 'border-gray-900 text-white' : 'border-neutral-300 text-gray-500 dark:border-gray-900 dark:text-white'"
       >
-        <div class="mb-1 font-medium">{{ $t('Preview') }}</div>
+        <div class="mb-1 font-medium">{{ i18n.t('Preview') }}</div>
         <div>{{ preview }}</div>
       </div>
     </template>

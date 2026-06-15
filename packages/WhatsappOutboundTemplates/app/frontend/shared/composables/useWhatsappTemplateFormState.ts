@@ -5,6 +5,8 @@ import { reactive, type App, createApp, type ComponentPublicInstance } from 'vue
 import type { FormRef } from '#shared/components/Form/types.ts'
 
 import type { WhatsappMessageTemplate } from './useWhatsappTemplateApi.ts'
+import initializeGlobalComponents from '#shared/initializer/globalComponents.ts'
+import initializeGlobalProperties from '#shared/initializer/globalProperties.ts'
 
 export interface WhatsappTemplateFormState {
   channelId?: number
@@ -107,6 +109,10 @@ export const mountWhatsappTemplateComposer = async (
     channelId: scope?.channelId,
     groupId: scope?.groupId,
   })
+
+  initializeGlobalComponents(app)
+  initializeGlobalProperties(app)
+
   const instance = app.mount(mountPoint)
 
   mountedApps.set(formId, { app, instance })

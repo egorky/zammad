@@ -3,7 +3,7 @@
 <script setup lang="ts">
 import { computed, toRef } from 'vue'
 
-import { useWhatsapp } from '#shared/entities/ticket/channel/composables/useWhatsapp.ts'
+import { useWhatsappArticleDelivery } from '#shared/composables/useWhatsappArticleDelivery.ts'
 import type { TicketArticle } from '#shared/entities/ticket/types.ts'
 
 interface Props {
@@ -14,21 +14,9 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const { articleDeliveryStatus } = useWhatsapp(toRef(props.context, 'article'))
-
-const deliveryFailed = computed(() => {
-  const preferences = props.context.article.preferences
-
-  return (
-    preferences?.delivery_status === 'fail' || preferences?.whatsapp?.delivery_status === 'fail'
-  )
-})
-
-const failureMessage = computed(() => {
-  const preferences = props.context.article.preferences
-
-  return preferences?.delivery_status_message || preferences?.whatsapp?.delivery_status_message
-})
+const { articleDeliveryStatus, deliveryFailed, failureMessage } = useWhatsappArticleDelivery(
+  toRef(props.context, 'article'),
+)
 
 const articleTypeLabel = computed(() => {
   if (props.context.article.type?.name === 'whatsapp template message') {
@@ -36,6 +24,15 @@ const articleTypeLabel = computed(() => {
   }
 
   return __('whatsapp message')
+})
+
+const statusColorClass = computed(() => {
+  const state = articleDeliveryStatus.value?.state
+
+  if (state === 'read') return 'text-sky-500'
+  if (state === 'delivered' || state === 'sent') return 'text-neutral-500 dark:text-neutral-400'
+
+  return ''
 })
 </script>
 
@@ -64,8 +61,9 @@ const articleTypeLabel = computed(() => {
         width="16"
         height="16"
         :name="articleDeliveryStatus?.icon"
+        :class="statusColorClass"
       />
-      <CommonLabel>{{ articleDeliveryStatus?.message }}</CommonLabel>
+      <CommonLabel :class="statusColorClass">{{ articleDeliveryStatus?.message }}</CommonLabel>
     </template>
   </div>
 </template>

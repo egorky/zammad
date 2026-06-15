@@ -21,7 +21,7 @@ Zammad add-on package that extends WhatsApp Business API support with **outbound
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.27.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.28.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -32,7 +32,7 @@ zammad restart
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.27.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.28.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -119,6 +119,8 @@ Restart the application afterwards.
 | Back to accounts does not return to WhatsApp channel list | Upgrade to 1.0.27+ — reloads accounts via API instead of broken hash navigation |
 | Back links look like plain text stuck to page titles | Upgrade to 1.0.27+ — arrow button nav separated from section headings |
 | WhatsApp delivery checks are gray/white with separator line | Upgrade to 1.0.27+ — WhatsApp-style blue read receipts, gray sent/delivered, no divider line |
+| Vue: no delivery checks in article bubbles | Upgrade to 1.0.28+ — integrates delivery status into ArticleBubble; adds missing `check-double-circle` icon |
+| Vue: template picker empty / `$t is not a function` error | Upgrade to 1.0.28+ — registers i18n/globals on programmatic template composer mount |
 
 ## API
 
