@@ -21,7 +21,7 @@ Zammad add-on package that extends WhatsApp Business API support with **outbound
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.24.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.25.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -32,7 +32,7 @@ zammad restart
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.24.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.25.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -48,6 +48,14 @@ bundle exec rake zammad:package:precompile
 Restart the application afterwards.
 
 ## Usage
+
+### View templates (admin)
+
+1. Go to **Admin → Channels → WhatsApp**
+2. Click **View Templates** on the desired account
+3. Browse synchronized templates in a structured gallery (header, body, footer, buttons)
+4. Open a template for a Meta-style preview and component details
+5. Use **Back to accounts** to return to the WhatsApp channel list
 
 ### Sync templates (admin)
 
@@ -104,6 +112,8 @@ Restart the application afterwards.
 | New ticket created while WhatsApp conversation is open | Upgrade to 1.0.19+ — reuses open WhatsApp ticket via REST and sets `create_article_type` to `whatsapp message` |
 | Send template icon invisible on light ticket background | Upgrade to 1.0.22+ — uses `document` icon in legacy UI and `snippet` in Vue |
 | Template article saved but never delivered on existing ticket (PUT update) | Upgrade to 1.0.23+ — server fixes type/enqueue; 1.0.24+ also sends `type_id` on ticket zoom submit |
+| View Templates opens plain text modal | Upgrade to 1.0.25+ — structured template gallery with Meta-style preview and back navigation |
+| No sent/delivered/read indicators on WhatsApp articles | Upgrade to 1.0.25+ — delivery status at bottom of message bubbles; failure alerts when delivery fails |
 
 ## API
 

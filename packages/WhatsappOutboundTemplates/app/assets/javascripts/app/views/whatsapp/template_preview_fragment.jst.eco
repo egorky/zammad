@@ -1,0 +1,32 @@
+<% for part in @parts: %>
+  <% if part.type is 'HEADER': %>
+    <div class="whatsapp-template-part whatsapp-template-part--header">
+      <% if part.format is 'IMAGE': %>
+        <div class="whatsapp-template-media-placeholder"><%- @T('Image header') %></div>
+      <% else if part.format is 'VIDEO': %>
+        <div class="whatsapp-template-media-placeholder"><%- @T('Video header') %></div>
+      <% else if part.format is 'DOCUMENT': %>
+        <div class="whatsapp-template-media-placeholder"><%- @T('Document header') %></div>
+      <% else if part.text: %>
+        <strong><%= part.text %></strong>
+      <% end %>
+    </div>
+  <% else if part.type is 'BODY': %>
+    <div class="whatsapp-template-part whatsapp-template-part--body">
+      <%= part.text %>
+    </div>
+  <% else if part.type is 'FOOTER': %>
+    <div class="whatsapp-template-part whatsapp-template-part--footer">
+      <%= part.text %>
+    </div>
+  <% else if part.type is 'BUTTONS': %>
+    <div class="whatsapp-template-part whatsapp-template-part--buttons">
+      <% for button in part.buttons: %>
+        <div class="whatsapp-template-button">
+          <%- @Icon('external', 'inline') if (button.type || button['type']) is 'URL' %>
+          <%= button.text || button['text'] || button.type || button['type'] %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

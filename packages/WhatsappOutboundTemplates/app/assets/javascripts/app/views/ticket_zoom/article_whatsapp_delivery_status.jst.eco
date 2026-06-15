@@ -1,0 +1,26 @@
+<% if @status?.show: %>
+  <div class="article-whatsapp-delivery-status">
+    <% if @status.failed: %>
+      <div class="alert alert--danger article-whatsapp-delivery-status-alert" role="alert">
+        <%- @Icon('warning') %>
+        <span><%- @T('Delivery failed') %></span>
+        <% if @status.message: %>
+          <div class="article-whatsapp-delivery-status-message"><%= @status.message %></div>
+        <% end %>
+      </div>
+    <% else: %>
+      <div class="article-whatsapp-delivery-status-row" title="<%- @T(@status.label) %>">
+        <span class="article-whatsapp-delivery-status-icons">
+          <% if @status.read: %>
+            <%- @Icon('double-checkmark', 'article-whatsapp-delivery-status-icon') %>
+          <% else if @status.delivered: %>
+            <%- @Icon('double-checkmark-outline', 'article-whatsapp-delivery-status-icon') %>
+          <% else if @status.sent: %>
+            <%- @Icon('checkmark-outline', 'article-whatsapp-delivery-status-icon') %>
+          <% end %>
+        </span>
+        <span class="article-whatsapp-delivery-status-label text-muted"><%- @T(@status.label) %></span>
+      </div>
+    <% end %>
+  </div>
+<% end %>

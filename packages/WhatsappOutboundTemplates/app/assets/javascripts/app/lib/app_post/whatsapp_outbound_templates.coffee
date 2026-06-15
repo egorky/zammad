@@ -126,33 +126,7 @@ $(document).off('click.whatsappTemplateSync').on 'click.whatsappTemplateSync', '
         msg:  App.i18n.translateContent(message)
   )
 
-showWhatsappTemplatesAdminModal = (templates, $container) ->
-  if _.isEmpty(templates)
-    message = __('No templates are stored for this WhatsApp account. Click Sync Templates first.')
-  else
-    lines = templates.map (template) ->
-      preview = buildWhatsappTemplatePreviewText(template)
-      variables = formatWhatsappTemplateVariablesSummary(template.variables)
-      status = template.status || '-'
-      details = [preview]
-      details.push(variables) if !_.isEmpty(variables)
-      "• #{template.name} (#{template.language}) — #{status}\n#{details.join('\n')}"
-
-    message = "#{App.i18n.translateInline(__('Synchronized templates:'))}\n\n#{lines.join('\n\n')}"
-
-  container = $container || $('.content').first()
-  container = $('body') if !container.length
-
-  new App.ControllerConfirm(
-    head: __('WhatsApp Templates')
-    message: message
-    buttonSubmit: __('OK')
-    buttonCancel: false
-    buttonClass: 'btn--primary'
-    callback: =>
-    container: container
-  )
-
+# Fallback when ChannelWhatsapp controller events are not bound.
 $(document).off('click.whatsappTemplateView').on 'click.whatsappTemplateView', '.js-view-whatsapp-templates', (e) ->
   e.preventDefault()
   e.stopPropagation()
@@ -160,17 +134,63 @@ $(document).off('click.whatsappTemplateView').on 'click.whatsappTemplateView', '
   $button = $(e.currentTarget)
   channelId = $button.attr('data-id')
   return if !channelId
-  return if $button.hasClass('is-loading')
 
+  controller = $button.closest('.content').find('[data-whatsapp-channel-controller]').data('whatsappChannelController')
+
+  if controller?.loadWhatsappTemplates
+    controller.loadWhatsappTemplates(channelId, $button)
+    return
+
+  return if $button.hasClass('is-loading')
   $button.addClass('is-loading is-active')
 
   App.Ajax.request(
-    id: 'whatsapp_templates_view'
+    id: 'whatsapp_templates_view_fallback'
     type: 'GET'
     url: "#{whatsappTemplateApiPath()}/whatsapp_message_templates?channel_id=#{channelId}"
     success: (data) =>
       $button.removeClass('is-loading is-active')
-      showWhatsappTemplatesAdminModal(data || [], $button.closest('.content'))
+      $content = $button.closest('.content')
+      channel = App.Channel.find(channelId)
+      helpers =
+        statusClass: (status) ->
+          normalized = "#{status}".toUpperCase()
+          switch normalized
+            when 'APPROVED' then 'success'
+            when 'PENDING', 'IN_APPEAL' then 'warning'
+            when 'REJECTED', 'PAUSED', 'DISABLED' then 'danger'
+            else 'muted'
+        preview: (template) ->
+          parts = []
+          for component in template?.components || []
+            type = whatsappTemplateComponentType(component)
+            text = whatsappTemplateComponentText(component)
+            format = component?.format || component?['format']
+            buttons = component?.buttons || component?['buttons']
+            if type is 'HEADER'
+              parts.push({ type: 'HEADER', text, format })
+            else if type is 'BODY' && text
+              parts.push({ type: 'BODY', text })
+            else if type is 'FOOTER' && text
+              parts.push({ type: 'FOOTER', text })
+            else if type is 'BUTTONS' && !_.isEmpty(buttons)
+              parts.push({ type: 'BUTTONS', buttons })
+          return '' if _.isEmpty(parts)
+          App.view('whatsapp/template_preview_fragment')(parts: parts)
+
+      account = channel?.options?.name || __('WhatsApp')
+      phone = channel?.options?.phone_number || '-'
+      channelLabel = "#{account} (#{phone})"
+
+      $target = $content.find('.page-content').first()
+      $content.data('whatsappTemplates', data || [])
+      $content.data('whatsappTemplatesChannelId', channelId)
+      $target.html App.view('whatsapp/templates_list')(
+        channelLabel: channelLabel
+        templates: data || []
+        statusClass: helpers.statusClass
+        preview: helpers.preview
+      )
     error: (xhr) =>
       $button.removeClass('is-loading is-active')
       response = {}

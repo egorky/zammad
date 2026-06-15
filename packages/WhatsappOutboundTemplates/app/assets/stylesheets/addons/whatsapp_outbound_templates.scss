@@ -1,0 +1,115 @@
+// Copyright (C) 2012-2026 Zammad Foundation, https://zammad-foundation.org/
+
+.whatsapp-templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.whatsapp-template-card-preview {
+  margin: 12px 0;
+}
+
+.whatsapp-template-phone {
+  max-width: 360px;
+  border: 1px solid var(--border-alt);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--background-primary);
+}
+
+.whatsapp-template-phone-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #075e54;
+  color: #fff;
+  font-weight: 600;
+}
+
+.whatsapp-template-phone-body {
+  padding: 16px;
+  background: #e5ddd5;
+  min-height: 180px;
+}
+
+.whatsapp-template-message-bubble {
+  max-width: 90%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+  word-break: break-word;
+}
+
+.whatsapp-template-part--header {
+  margin-bottom: 8px;
+}
+
+.whatsapp-template-part--body {
+  white-space: pre-wrap;
+  margin-bottom: 6px;
+}
+
+.whatsapp-template-part--footer {
+  color: var(--ghost-color);
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.whatsapp-template-part--buttons {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.whatsapp-template-button {
+  padding: 8px 0;
+  text-align: center;
+  color: #0088cc;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.whatsapp-template-media-placeholder {
+  padding: 24px;
+  text-align: center;
+  background: var(--background-secondary);
+  color: var(--ghost-color);
+  border-radius: 4px;
+}
+
+.article-whatsapp-delivery-status {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-alt);
+}
+
+.article-whatsapp-delivery-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.article-whatsapp-delivery-status-icons {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.article-whatsapp-delivery-status-alert {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.article-whatsapp-delivery-status-message {
+  margin-top: 4px;
+  font-size: 11px;
+}
