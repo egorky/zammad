@@ -14,11 +14,16 @@ module WhatsappOutboundTemplates
     def whatsapp_outbound_templates_prepare_ticket
       return if Setting.get('import_mode')
       return if !sender_id
-      return if !WhatsappOutboundTemplates::Preferences.whatsapp_template_article_record?(self)
 
       sender = Ticket::Article::Sender.lookup(id: sender_id)
       return if sender.nil?
       return if sender.name == 'Customer'
+
+      if WhatsappOutboundTemplates::Preferences.whatsapp_template_preferences?(self)
+        WhatsappOutboundTemplates::Preferences.ensure_template_article_type!(self)
+      end
+
+      return if !WhatsappOutboundTemplates::Preferences.whatsapp_template_article_record?(self)
 
       if ticket.preferences['channel_id'].blank? || ticket.preferences.dig('whatsapp', 'from', 'phone_number').blank?
         WhatsappOutboundTemplates::Preferences.apply_to_ticket!(ticket, article: self)

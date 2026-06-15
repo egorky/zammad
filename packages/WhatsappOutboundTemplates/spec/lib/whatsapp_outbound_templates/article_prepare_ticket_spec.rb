@@ -55,4 +55,24 @@ RSpec.describe WhatsappOutboundTemplates::ArticlePrepareTicket do
     whatsapp_type = Ticket::Article::Type.lookup(name: 'whatsapp message')
     expect(ticket.reload.create_article_type_id).to eq(whatsapp_type.id)
   end
+
+  it 'fixes missing article type when template preferences are present' do
+    article = create(
+      :ticket_article,
+      ticket:      ticket,
+      type_name:   'note',
+      sender_name: 'Agent',
+      created_by:  agent,
+      preferences: {
+        whatsapp_template: {
+          name:       'hello_world',
+          language:   'en_US',
+          channel_id: channel.id,
+        },
+      },
+    )
+
+    template_type = Ticket::Article::Type.lookup(name: 'whatsapp template message')
+    expect(article.reload.type_id).to eq(template_type.id)
+  end
 end

@@ -103,6 +103,9 @@ module WhatsappOutboundTemplates
 
       data = normalize_article_data(article_data)
 
+      template_prefs = data[:preferences]&.dig(:whatsapp_template) || data[:preferences]&.dig('whatsapp_template')
+      return true if template_prefs.present? && (template_prefs[:name].present? || template_prefs['name'].present?)
+
       type = data[:type]
       return type == WHATSAPP_TEMPLATE_ARTICLE_TYPE if type.present?
 
@@ -113,10 +116,31 @@ module WhatsappOutboundTemplates
     end
 
     def whatsapp_template_article_record?(article)
+      return true if whatsapp_template_preferences?(article)
+
       return false if article.type_id.blank?
 
       type = Ticket::Article::Type.lookup(id: article.type_id)
       type&.name == WHATSAPP_TEMPLATE_ARTICLE_TYPE
+    end
+
+    def whatsapp_template_preferences?(article)
+      template_prefs = if article.respond_to?(:preferences)
+                         article.preferences
+                       else
+                         article[:preferences] || article['preferences'] || {}
+                       end
+
+      data = template_prefs['whatsapp_template'] || template_prefs[:whatsapp_template] || {}
+      data['name'].present? || data[:name].present?
+    end
+
+    def ensure_template_article_type!(article)
+      whatsapp_message_type = Ticket::Article::Type.lookup(name: WHATSAPP_TEMPLATE_ARTICLE_TYPE)
+      return if whatsapp_message_type.blank?
+      return if article.type_id == whatsapp_message_type.id
+
+      article.type_id = whatsapp_message_type.id
     end
   end
 end

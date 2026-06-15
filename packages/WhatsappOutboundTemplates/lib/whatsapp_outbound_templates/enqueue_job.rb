@@ -17,12 +17,18 @@ module WhatsappOutboundTemplates
       sender = Ticket::Article::Sender.lookup(id: sender_id)
       return true if sender.nil?
       return true if sender.name == 'Customer'
-      return true if !type_id
-
-      type = Ticket::Article::Type.lookup(id: type_id)
-      return true if type.name != 'whatsapp template message'
+      return true if !whatsapp_outbound_templates_delivery_needed?
 
       CommunicateWhatsappTemplateJob.perform_later(id)
+    end
+
+    def whatsapp_outbound_templates_delivery_needed?
+      return true if WhatsappOutboundTemplates::Preferences.whatsapp_template_preferences?(self)
+
+      return false if !type_id
+
+      type = Ticket::Article::Type.lookup(id: type_id)
+      type&.name == 'whatsapp template message'
     end
   end
 end

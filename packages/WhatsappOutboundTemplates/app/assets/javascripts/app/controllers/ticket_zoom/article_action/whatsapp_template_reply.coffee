@@ -88,7 +88,16 @@ class WhatsappTemplateReply
     articleTypes
 
   @params: (type, params, ui) ->
-    if type is WHATSAPP_TEMPLATE_ARTICLE_TYPE_NAME
+    if type is WHATSAPP_TEMPLATE_ARTICLE_TYPE_NAME or params.preferences?.whatsapp_template
+      articleType = App.TicketArticleType.findByAttribute('name', WHATSAPP_TEMPLATE_ARTICLE_TYPE_NAME)
+      sender = App.TicketArticleSender.findByAttribute('name', 'Agent')
+
+      if articleType
+        params.type_id = articleType.id
+        params.type = WHATSAPP_TEMPLATE_ARTICLE_TYPE_NAME
+      if sender
+        params.sender_id = sender.id
+
       templateData = ui.whatsappTemplateFormData?()
       if templateData
         params.content_type = 'text/plain'

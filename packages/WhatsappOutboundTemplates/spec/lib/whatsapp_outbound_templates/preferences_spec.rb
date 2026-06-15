@@ -46,5 +46,15 @@ RSpec.describe WhatsappOutboundTemplates::Preferences do
       expect(described_class.whatsapp_template_article?({ type_id: type.id })).to be(true)
       expect(described_class.whatsapp_template_article?({ type_id: Ticket::Article::Type.lookup(name: 'note').id })).to be(false)
     end
+
+    it 'detects template articles by whatsapp_template preferences' do
+      expect(described_class.whatsapp_template_article?({
+                                                          preferences: {
+                                                            whatsapp_template: {
+                                                              name: 'hello_world',
+                                                            },
+                                                          },
+                                                        })).to be(true)
+    end
   end
 end
