@@ -1,0 +1,99 @@
+<div class="whatsapp-template-nav">
+  <a href="#" class="btn btn--text btn--secondary js-back-whatsapp-templates">
+    <%- @Icon('arrow-left', 'inline') %>
+    <%- @T('Back to templates') %>
+  </a>
+</div>
+
+<div class="page-header">
+  <div class="page-header-title">
+    <h1><%= @template.name %> <small><%= @template.language %></small></h1>
+  </div>
+  <div class="page-header-meta">
+    <span class="label label--<%= @statusClass(@template.status) %>"><%= @template.status || '-' %></span>
+  </div>
+</div>
+
+<div class="page-content">
+  <div class="horizontal u-gap">
+    <div class="flex-1">
+      <h2><%- @T('Template preview') %></h2>
+      <div class="whatsapp-template-phone">
+        <div class="whatsapp-template-phone-header">
+          <%- @Icon('whatsapp', 'inline') %>
+          <span><%= @channelLabel %></span>
+        </div>
+        <div class="whatsapp-template-phone-body">
+          <div class="whatsapp-template-message-bubble">
+            <%- @preview(@template) %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-1">
+      <h2><%- @T('Details') %></h2>
+      <table class="settings-list settings-list--stretch">
+        <tbody>
+          <tr>
+            <td class="settings-list-row-control"><%- @T('Name') %></td>
+            <td class="settings-list-row-control"><%= @template.name %></td>
+          </tr>
+          <tr>
+            <td class="settings-list-row-control"><%- @T('Language') %></td>
+            <td class="settings-list-row-control"><%= @template.language %></td>
+          </tr>
+          <tr>
+            <td class="settings-list-row-control"><%- @T('Status') %></td>
+            <td class="settings-list-row-control"><%= @template.status || '-' %></td>
+          </tr>
+          <% if @template.category: %>
+            <tr>
+              <td class="settings-list-row-control"><%- @T('Category') %></td>
+              <td class="settings-list-row-control"><%= @template.category %></td>
+            </tr>
+          <% end %>
+          <% if @template.meta_template_id: %>
+            <tr>
+              <td class="settings-list-row-control"><%- @T('Meta template ID') %></td>
+              <td class="settings-list-row-control"><%= @template.meta_template_id %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+
+      <% variablesSummary = @variablesSummary(@template.variables) %>
+      <% if !_.isEmpty(variablesSummary): %>
+        <h3 class="u-mt"><%- @T('Variables') %></h3>
+        <pre class="well well--no-border"><%= variablesSummary %></pre>
+      <% end %>
+
+      <h3 class="u-mt"><%- @T('Components') %></h3>
+      <% for component in @template.components || []: %>
+        <div class="well well--no-border u-mb">
+          <strong><%= component.type || component['type'] %></strong>
+          <% if component.format || component['format']: %>
+            <span class="text-muted"> (<%= component.format || component['format'] %>)</span>
+          <% end %>
+          <% text = component.text || component['text'] %>
+          <% if text: %>
+            <div class="u-mt"><%= text %></div>
+          <% end %>
+          <% buttons = component.buttons || component['buttons'] %>
+          <% if !_.isEmpty(buttons): %>
+            <ul class="u-mt">
+              <% for button in buttons: %>
+                <li>
+                  <strong><%= button.type || button['type'] %></strong>
+                  <% if button.text || button['text']: %>: <%= button.text || button['text'] %><% end %>
+                  <% if button.url || button['url']: %> — <%= button.url || button['url'] %><% end %>
+                  <% if button.phone_number || button['phone_number']: %> — <%= button.phone_number || button['phone_number'] %><% end %>
+                </li>
+              <% end %>
+            </ul>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

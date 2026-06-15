@@ -1,0 +1,54 @@
+<div class="whatsapp-template-nav">
+  <a href="#" class="btn btn--text btn--secondary js-back-whatsapp-accounts">
+    <%- @Icon('arrow-left', 'inline') %>
+    <%- @T('Back to accounts') %>
+  </a>
+</div>
+
+<div class="page-header">
+  <div class="page-header-title">
+    <h1><%- @T('WhatsApp Templates') %> <small><%= @channelLabel %></small></h1>
+  </div>
+</div>
+
+<div class="page-content">
+  <% if _.isEmpty(@templates): %>
+    <div class="page-description">
+      <div class="alert alert--info">
+        <%- @T('No templates are stored for this WhatsApp account. Click Sync Templates first.') %>
+      </div>
+    </div>
+  <% else: %>
+    <div class="page-description">
+      <p><%- @T('Synchronized message templates from your Meta WhatsApp Business account.') %></p>
+    </div>
+
+    <div class="whatsapp-templates-grid">
+      <% for template in @templates: %>
+        <div class="action whatsapp-template-card js-whatsapp-template-card" data-id="<%= template.id %>">
+          <div class="action-block action-row">
+            <h2>
+              <%= template.name %>
+              <span class="text-muted"><%= template.language %></span>
+            </h2>
+            <span class="label label--<%= @statusClass(template.status) %>"><%= template.status || '-' %></span>
+          </div>
+
+          <div class="whatsapp-template-card-preview">
+            <%- @preview(template) %>
+          </div>
+
+          <% if template.category: %>
+            <div class="action-block">
+              <span class="text-muted"><%- @T('Category') %>:</span> <%= template.category %>
+            </div>
+          <% end %>
+
+          <div class="action-controls">
+            <div class="btn btn--secondary"><%- @T('View details') %></div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
