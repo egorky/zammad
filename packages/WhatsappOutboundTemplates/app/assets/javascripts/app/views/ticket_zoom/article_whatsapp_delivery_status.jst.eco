@@ -1,5 +1,5 @@
 <% if @status?.show: %>
-  <div class="article-whatsapp-delivery-status">
+  <div class="article-whatsapp-delivery-status article-whatsapp-delivery-status--<%= @status.state %>">
     <% if @status.failed: %>
       <div class="alert alert--danger article-whatsapp-delivery-status-alert" role="alert">
         <%- @Icon('warning') %>
@@ -19,7 +19,7 @@
             <%- @Icon('checkmark-outline', 'article-whatsapp-delivery-status-icon') %>
           <% end %>
         </span>
-        <span class="article-whatsapp-delivery-status-label text-muted"><%- @T(@status.label) %></span>
+        <span class="article-whatsapp-delivery-status-label"><%- @T(@status.label) %></span>
       </div>
     <% end %>
   </div>

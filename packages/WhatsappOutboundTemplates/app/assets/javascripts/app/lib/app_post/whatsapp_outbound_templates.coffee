@@ -128,12 +128,14 @@ showWhatsappTemplatesSection = ($context, channelId, templates) ->
   $content.data('whatsappTemplates', templates || [])
   $content.data('whatsappTemplatesChannelId', channelId)
 
-  findWhatsappAdminContainer($context).html App.view('whatsapp/templates_list')(
+  $container = findWhatsappAdminContainer($context)
+  $container.html App.view('whatsapp/templates_list')(
     channelLabel: whatsappTemplateChannelLabel(channel)
     templates: templates || []
     statusClass: helpers.statusClass
     preview: helpers.preview
   )
+  $container.attr('data-whatsapp-channel-controller', 'true')
 
 showWhatsappTemplateDetailSection = ($context, template) ->
   $content = $context.closest('.content')
@@ -141,12 +143,56 @@ showWhatsappTemplateDetailSection = ($context, template) ->
   channel = App.Channel.find(channelId)
   helpers = whatsappTemplateAdminHelpers()
 
-  findWhatsappAdminContainer($context).html App.view('whatsapp/template_detail')(
+  $container = findWhatsappAdminContainer($context)
+  $container.html App.view('whatsapp/template_detail')(
     template: template
     channelLabel: whatsappTemplateChannelLabel(channel)
     statusClass: helpers.statusClass
     preview: helpers.preview
     variablesSummary: helpers.variablesSummary
+  )
+  $container.attr('data-whatsapp-channel-controller', 'true')
+
+reloadWhatsappAccountsSection = ($context) ->
+  $content = $context.closest('.content')
+  $container = findWhatsappAdminContainer($context)
+
+  $content.removeData('whatsappTemplates')
+  $content.removeData('whatsappTemplatesChannelId')
+
+  controller = $content.data('whatsappChannelController') || $container.data('whatsappChannelController')
+  if controller?.load
+    controller.load()
+    return
+
+  $container.html '<div class="loading"></div>'
+
+  App.Ajax.request(
+    id: 'whatsapp_accounts_reload'
+    type: 'GET'
+    url: "#{whatsappTemplateApiPath()}/channels/admin/whatsapp"
+    success: (data) =>
+      App.Collection.loadAssets(data.assets)
+      channels = data.channel_ids.map (elem) -> App.Channel.find(elem)
+      $container.html App.view('whatsapp/index')(channels: channels)
+      $container.attr('data-whatsapp-channel-controller', 'true')
+      $log = $container.find('.js-log')
+      if $log.length
+        new App.HttpLog(
+          el: $log
+          facility: 'WhatsApp::Business'
+        )
+    error: (xhr) =>
+      response = {}
+      try
+        response = JSON.parse(xhr.responseText)
+      catch error
+        response = {}
+
+      message = response.error_human || response.error || __('Unable to load WhatsApp accounts.')
+      App.Event.trigger 'notify',
+        type: 'error'
+        msg:  App.i18n.translateContent(message)
   )
 
 buildWhatsappArticleDeliveryStatus = (article) ->
@@ -161,15 +207,16 @@ buildWhatsappArticleDeliveryStatus = (article) ->
     return {
       show: true
       failed: true
+      state: 'failed'
       message: preferences.delivery_status_message || whatsapp.delivery_status_message || ''
     }
 
   if whatsapp.timestamp_read
-    return { show: true, read: true, label: __('Read') }
+    return { show: true, read: true, state: 'read', label: __('Read') }
   if whatsapp.timestamp_delivered
-    return { show: true, delivered: true, label: __('Delivered') }
+    return { show: true, delivered: true, state: 'delivered', label: __('Delivered') }
   if whatsapp.timestamp_sent || whatsapp.message_id
-    return { show: true, sent: true, label: __('Sent') }
+    return { show: true, sent: true, state: 'sent', label: __('Sent') }
 
   { show: false }
 
@@ -286,13 +333,7 @@ $(document).off('click.whatsappTemplateView').on 'click.whatsappTemplateView', '
 
 $(document).off('click.whatsappTemplateBack').on 'click.whatsappTemplateBack', '.js-back-whatsapp-accounts', (e) ->
   e.preventDefault()
-
-  controller = $content.find('[data-whatsapp-channel-controller]').data('whatsappChannelController') if ($content = $(e.currentTarget).closest('.content')).length
-  if controller?.load
-    controller.load()
-    return
-
-  window.location.hash = '#channels/whatsapp'
+  reloadWhatsappAccountsSection($(e.currentTarget))
 
 $(document).off('click.whatsappTemplateListBack').on 'click.whatsappTemplateListBack', '.js-back-whatsapp-templates', (e) ->
   e.preventDefault()
@@ -336,6 +377,7 @@ if typeof ChannelWhatsapp isnt 'undefined'
     _channelWhatsappRender.apply(this, arguments)
     @el.attr('data-whatsapp-channel-controller', 'true')
     @el.data('whatsappChannelController', this)
+    @el.closest('.content').data('whatsappChannelController', this)
 
   ChannelWhatsapp.prototype.whatsappTemplateViewHelpers = ->
     whatsappTemplateAdminHelpers()

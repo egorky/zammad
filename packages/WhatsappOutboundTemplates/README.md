@@ -21,7 +21,7 @@ Zammad add-on package that extends WhatsApp Business API support with **outbound
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.26.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.27.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -32,7 +32,7 @@ zammad restart
 
 ```bash
 ruby packages/WhatsappOutboundTemplates/build.rb
-zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.26.zpm
+zammad run rake zammad:package:install /ruta/absoluta/WhatsappOutboundTemplates-1.0.27.zpm
 zammad run rake zammad:package:post_install
 zammad restart
 ```
@@ -116,6 +116,9 @@ Restart the application afterwards.
 | No sent/delivered/read indicators on WhatsApp articles | Upgrade to 1.0.25+ — delivery status at bottom of message bubbles; failure alerts when delivery fails |
 | Vue desktop UI broken after 1.0.25 (`desktop.ts` not in manifest) | Upgrade to 1.0.26+ — removes core `ArticleBubble.vue` override that broke Vite build; run `post_install` |
 | Legacy template viewer or delivery checks not visible after upgrade | Upgrade to 1.0.26+ and run `zammad:package:post_install` (rebuilds CoffeeScript + Vite assets) |
+| Back to accounts does not return to WhatsApp channel list | Upgrade to 1.0.27+ — reloads accounts via API instead of broken hash navigation |
+| Back links look like plain text stuck to page titles | Upgrade to 1.0.27+ — arrow button nav separated from section headings |
+| WhatsApp delivery checks are gray/white with separator line | Upgrade to 1.0.27+ — WhatsApp-style blue read receipts, gray sent/delivered, no divider line |
 
 ## API
 

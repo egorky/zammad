@@ -1,5 +1,17 @@
 // Copyright (C) 2012-2026 Zammad Foundation, https://zammad-foundation.org/
 
+.whatsapp-template-nav {
+  margin-bottom: 12px;
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding-left: 0;
+    font-weight: 600;
+  }
+}
+
 .whatsapp-templates-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -84,9 +96,8 @@
 }
 
 .article-whatsapp-delivery-status {
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border-alt);
+  margin-top: 4px;
+  padding-top: 0;
 }
 
 .article-whatsapp-delivery-status-row {
@@ -97,10 +108,40 @@
   font-size: 11px;
 }
 
+.article-whatsapp-delivery-status-label {
+  color: var(--ghost-color);
+}
+
 .article-whatsapp-delivery-status-icons {
   display: inline-flex;
   align-items: center;
   line-height: 1;
+
+  .article-whatsapp-delivery-status-icon {
+    vertical-align: middle;
+  }
+}
+
+.article-whatsapp-delivery-status--sent {
+  .article-whatsapp-delivery-status-icon path {
+    fill: #8696a0;
+  }
+}
+
+.article-whatsapp-delivery-status--delivered {
+  .article-whatsapp-delivery-status-icon path {
+    fill: #8696a0;
+  }
+}
+
+.article-whatsapp-delivery-status--read {
+  .article-whatsapp-delivery-status-icon path {
+    fill: #53bdeb;
+  }
+
+  .article-whatsapp-delivery-status-label {
+    color: #53bdeb;
+  }
 }
 
 .article-whatsapp-delivery-status-alert {

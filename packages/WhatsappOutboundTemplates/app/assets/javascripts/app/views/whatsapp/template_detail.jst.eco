@@ -1,6 +1,12 @@
+<div class="whatsapp-template-nav">
+  <a href="#" class="btn btn--text btn--secondary js-back-whatsapp-templates">
+    <%- @Icon('arrow-left', 'inline') %>
+    <%- @T('Back to templates') %>
+  </a>
+</div>
+
 <div class="page-header">
   <div class="page-header-title">
-    <h5><a href="#" class="js-back-whatsapp-templates"><%- @T('Back to templates') %></a></h5>
     <h1><%= @template.name %> <small><%= @template.language %></small></h1>
   </div>
   <div class="page-header-meta">
